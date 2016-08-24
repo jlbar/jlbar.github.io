@@ -6,8 +6,66 @@
     <description>Recent content on notes and stuff</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 22 Aug 2016 14:31:21 -0500</lastBuildDate>
+    <lastBuildDate>Wed, 24 Aug 2016 15:16:03 -0500</lastBuildDate>
     <atom:link href="https://jlbar.github.io/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Logging with Fluentd</title>
+      <link>https://jlbar.github.io/post/08-23-2016_fluentd/</link>
+      <pubDate>Wed, 24 Aug 2016 15:16:03 -0500</pubDate>
+      
+      <guid>https://jlbar.github.io/post/08-23-2016_fluentd/</guid>
+      <description>
+
+&lt;p&gt;Fluentd is an open source data collector that comprises several critical
+functions necessary to expose a centralized, unified logging layer across a set
+of applications and infrastructure. Fluentd allows logging data to be streamed
+from disparate applications into a central persistence layer such as an
+Elasticsearch cluster. The fluentd architecture provides durable writes,
+reliable delivery over a network, high availability, and massive scale.&lt;/p&gt;
+
+&lt;h2 id=&#34;high-availability&#34;&gt;High Availability&lt;/h2&gt;
+
+&lt;p&gt;Fluentd&amp;rsquo;s high availability configuration involves two distinct entities:
+forwarders and aggregators. Forwarders are instantiated on individual servers,
+and are responsible for durable writes, buffering, and reliably sending events
+to downstream aggregators. Aggregators are responsible for collecting events
+from potentially multiple forwarders. In turn, those events are buffered and
+sent along to some persistence layer.&lt;/p&gt;
+
+&lt;h2 id=&#34;durability&#34;&gt;Durability&lt;/h2&gt;
+
+&lt;p&gt;Forwarders and aggregators both support durable writes. In either case, when an
+event is received, fluentd will first write the data locally to disk. Data is
+buffered on disk for some configurable time interval. Once each cycle has
+expired, data is either forwarded to an aggregator or a persistence layer. If a
+fluentd process is terminated, any buffered data is picked up once the process
+restarts. Data transfer is similarly robust in that, in the event of a network
+partition, fluentd will automatically retry.&lt;/p&gt;
+
+&lt;h2 id=&#34;containers-and-orchestration&#34;&gt;Containers and Orchestration&lt;/h2&gt;
+
+&lt;p&gt;Implemented correctly, containers are immutable and ephemeral. This presents a
+particular set of challenges when attempting to persist application logs in the
+traditional manner, on the application server&amp;rsquo;s filesystem. In this case,
+fluentd provides a particularly attractive solution.&lt;/p&gt;
+
+&lt;p&gt;Docker 1.8 saw the release of a native fluentd logging driver, which greatly
+simplified the implementation of a centralized logging solution in a
+containerized environment. An example architecture, using containers and the
+fluentd high availability configuration, is given below.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://jlbar.github.io/img/fluentd_container_architecture.png&#34; alt=&#34;this is an image&#34; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;practical-issues&#34;&gt;Practical Issues&lt;/h2&gt;
+
+&lt;p&gt;There are several critical OS-level configuration concerns which must be
+addressed with any production fluentd installation. These are detailed
+&lt;a href=&#34;http://docs.fluentd.org/articles/before-install&#34;&gt;here&lt;/a&gt; and include items such
+as increasing the maximum number of open file descriptors, along with various
+network optimizations.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>first</title>
