@@ -6,13 +6,13 @@
     <description>Recent content on notes and stuff</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 01 Sep 2016 08:08:54 -0500</lastBuildDate>
+    <lastBuildDate>Thu, 01 Sep 2016 08:18:45 -0500</lastBuildDate>
     <atom:link href="https://jlbar.github.io/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
       <title>Periodicity in Financial Time Series</title>
       <link>https://jlbar.github.io/post/08-29-2016_fourier-transform/</link>
-      <pubDate>Thu, 01 Sep 2016 08:08:54 -0500</pubDate>
+      <pubDate>Thu, 01 Sep 2016 08:18:45 -0500</pubDate>
       
       <guid>https://jlbar.github.io/post/08-29-2016_fourier-transform/</guid>
       <description>
@@ -28,14 +28,10 @@ something more unified and coherent. Each source will have its own section.&lt;/
 
 &lt;p&gt;The most important principle of the subject at hand is the following.&lt;/p&gt;
 
-&lt;p&gt;And another edit.&lt;/p&gt;
-
 &lt;p&gt;&lt;em&gt;Every signal has a spectrum and is determined by its spectrum. You can analyze
 the signal either in the time (or spatial) domain or in the frequency domain.&lt;/em&gt;&lt;/p&gt;
 
 &lt;h3 id=&#34;time-and-space&#34;&gt;Time and Space&lt;/h3&gt;
-
-&lt;p&gt;Time and stuff&amp;hellip;&lt;/p&gt;
 
 &lt;p&gt;We think about periodic phenomena in two distinct contexts: &lt;em&gt;time&lt;/em&gt; and &lt;em&gt;space&lt;/em&gt;.&lt;/p&gt;
 
@@ -94,6 +90,175 @@ variety of frequency components.&lt;/p&gt;
 &lt;li&gt;&lt;a href=&#34;http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf&#34;&gt;http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&#34;http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf&#34;&gt;http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Logging with Fluentd</title>
+      <link>https://jlbar.github.io/post/08-23-2016_fluentd/</link>
+      <pubDate>Thu, 01 Sep 2016 08:18:37 -0500</pubDate>
+      
+      <guid>https://jlbar.github.io/post/08-23-2016_fluentd/</guid>
+      <description>
+
+&lt;p&gt;Fluentd is an open source data collector that comprises several critical
+functions necessary to expose a centralized, unified logging layer across a set
+of applications and infrastructure. Fluentd allows logging data to be streamed
+from disparate applications into a central persistence layer such as an
+Elasticsearch cluster. The fluentd architecture provides durable writes,
+reliable delivery over a network, high availability, and massive scale.&lt;/p&gt;
+
+&lt;h2 id=&#34;high-availability&#34;&gt;High Availability&lt;/h2&gt;
+
+&lt;p&gt;Fluentd&amp;rsquo;s high availability configuration involves two distinct entities:
+forwarders and aggregators. Forwarders are instantiated on individual servers,
+and are responsible for durable writes, buffering, and reliably sending events
+to downstream aggregators. Aggregators are responsible for collecting events
+from potentially multiple forwarders. In turn, those events are buffered and
+sent along to some persistence layer.&lt;/p&gt;
+
+&lt;h2 id=&#34;durability&#34;&gt;Durability&lt;/h2&gt;
+
+&lt;p&gt;Forwarders and aggregators both support durable writes. In either case, when an
+event is received, fluentd will first write the data locally to disk. Data is
+buffered on disk for some configurable time interval. Once each cycle has
+expired, data is either forwarded to an aggregator or a persistence layer. If a
+fluentd process is terminated, any buffered data is picked up once the process
+restarts. Data transfer is similarly robust in that, in the event of a network
+partition, fluentd will automatically retry.&lt;/p&gt;
+
+&lt;h2 id=&#34;containers-and-orchestration&#34;&gt;Containers and Orchestration&lt;/h2&gt;
+
+&lt;p&gt;Containerization is difficult due, in part, to the fact that the technology
+fundamentally alters the nature of application logging. This, combined with the
+fact that best practices in this area have yet to solidify, makes the issue
+pernicious.&lt;/p&gt;
+
+&lt;p&gt;Implemented correctly, containers are immutable and ephemeral. This
+presents a particular set of challenges when attempting to persist application
+logs in the traditional manner, on the application server&amp;rsquo;s filesystem. In this
+case, fluentd provides a particularly attractive solution.&lt;/p&gt;
+
+&lt;p&gt;Docker 1.8 saw the release of a native fluentd logging driver, which greatly
+simplified the implementation of a centralized logging solution in a
+containerized environment. An example architecture, using containers and the
+fluentd high availability configuration, is given below.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://jlbar.github.io/img/fluentd_container_architecture.png&#34; alt=&#34;this is an image&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;When considering a logging solution for a containerized, orchestrated
+environment, several key points must be addressed.&lt;/p&gt;
+
+&lt;h2 id=&#34;logs&#34;&gt;Logs&lt;/h2&gt;
+
+&lt;h3 id=&#34;ephemerality&#34;&gt;Ephemerality&lt;/h3&gt;
+
+&lt;p&gt;Containers are transient and should be treated as immutable infrastructure
+components. In fact, one of the primary functions of an orchestration framework
+is to start, stop, instantiate, and dispose of containers according to a set of
+(preferably) declarative statements about an application&amp;rsquo;s operational
+environment. Thus, logging locally within a container is an anti-pattern. Due to
+the ephemerality of containers, logging data must be exported for persistence
+and analysis.&lt;/p&gt;
+
+&lt;h3 id=&#34;multi-tiered-architecture&#34;&gt;Multi-Tiered Architecture&lt;/h3&gt;
+
+&lt;p&gt;An operational container has dependencies well beyond the runtime of the
+container itself. Each container, for instance, is managed by a Docker service
+local to the host operating system upon which the container is deployed. Of
+course, the host operating system itself is another critical component. To
+provide a complete view of a containerized operational environment, logs from
+each of these components must be readily accessible and, critically, &lt;em&gt;relatable&lt;/em&gt;
+to one another. If container &lt;em&gt;C&lt;/em&gt; is running on host &lt;em&gt;H&lt;/em&gt; and being managed by
+Docker process &lt;em&gt;D&lt;/em&gt;, we must be able to readily identify and access logs across
+these components.&lt;/p&gt;
+
+&lt;h3 id=&#34;docker-logging-methods&#34;&gt;Docker Logging Methods&lt;/h3&gt;
+
+&lt;h4 id=&#34;application&#34;&gt;Application&lt;/h4&gt;
+
+&lt;p&gt;The traditional scenario involves an application writing and managing its own
+logs using a framework available to the programming language native to the
+application. Centralized logging solutions using frameworks such as &lt;code&gt;log4j&lt;/code&gt; and
+python&amp;rsquo;s &lt;code&gt;logging&lt;/code&gt; module are possible to implement, entirely independent of
+Docker and the host OS. This scenario gives the developer the most control, but
+application performance is impacted.&lt;/p&gt;
+
+&lt;p&gt;One issue with application logging a containerized service is that, as
+previously mentioned, a running container&amp;rsquo;s filesystem is ephemeral. When the
+container goes out of scope, its filesystem is lost. This leaves the two options
+of either configuring a persistent data volume or forwarding logs to a remote
+persistence apparatus. Another issue with this strategy involves the deployment
+of multiple containers running the same application. Each application/container
+pair must be uniquely identifiable in the logs.&lt;/p&gt;
+
+&lt;h4 id=&#34;data-volumes&#34;&gt;Data Volumes&lt;/h4&gt;
+
+&lt;p&gt;Using this technique, long-lived data is persisted by mapping a directory in the
+container to a directory on the host OS. A single volume may be shared across
+multiple containers running on the same host OS. One issue is that moving
+containers from one host to another becomes difficult to do without losing
+logging data. At any rate, the complexity of moving both an application &lt;em&gt;and&lt;/em&gt;
+its logs is not ideal.&lt;/p&gt;
+
+&lt;h4 id=&#34;docker-logging-driver&#34;&gt;Docker Logging Driver&lt;/h4&gt;
+
+&lt;p&gt;This scenario, described briefly above, takes much of the responsibility around
+logging away from the application, and gives it to the Docker logging driver.
+The driver takes events directly from a container&amp;rsquo;s stdout and stderr, then
+performs some function, depending on the specific driver chosen. Application
+performance is improved due to the dramatically reduced interaction between the
+application and the filesystem.&lt;/p&gt;
+
+&lt;h4 id=&#34;dedicated-logging-container&#34;&gt;Dedicated Logging Container&lt;/h4&gt;
+
+&lt;p&gt;Logging either by mounting a volume to a host or by using a logging driver both
+share a common fault: reliance on a service running on the host OS. Dedicated
+logging containers localize logging responsibility across a host OS to a single
+container which does only that: manage other containers&amp;rsquo; logs. Dedicated logging
+containers are as flexible as the two host-based systems discussed and are able
+to ingest logs from multiple sources, such as data volumes and stderr.&lt;/p&gt;
+
+&lt;h4 id=&#34;sidecar&#34;&gt;Sidecar&lt;/h4&gt;
+
+&lt;p&gt;This approach involves the instantiation of one dedicated logging container to
+each application container. Each logging container is responsible only for
+managing logs for its single charge. This scenario typically involves the two
+containers sharing a volume on the host OS, with the application writing to the
+volume, and the sidecar reading, rolling off, and generally managing the logs
+streaming into the volume. The sidecar approach is more complex than the others,
+but scales more readily. An orchestration system like Kubernetes or Swarm is
+likely the best way to manage the additional complexity incurred with this
+solution.&lt;/p&gt;
+
+&lt;h2 id=&#34;practical-issues&#34;&gt;Practical Issues&lt;/h2&gt;
+
+&lt;p&gt;There are several critical OS-level configuration concerns which must be
+addressed with any production fluentd installation. These are detailed
+&lt;a href=&#34;http://docs.fluentd.org/articles/before-install&#34;&gt;here&lt;/a&gt; and include items such
+as increasing the maximum number of open file descriptors, along with various
+network optimizations.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://www.fluentd.org/guides/recipes/docker-logging&#34;&gt;Here&lt;/a&gt;, the documentation
+suggests adding the following to &lt;code&gt;td-agent.conf&lt;/code&gt;.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;source&amp;gt;
+  type forward
+  port 24224
+  bind 0.0.0.0
+&amp;lt;/source&amp;gt;
+
+&amp;lt;match *.*&amp;gt;
+  type stdout
+&amp;lt;/match&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The issue with this is that the default configuration file already contains a
+&lt;code&gt;&amp;lt;source&amp;gt;&lt;/code&gt; node with type &lt;code&gt;forward&lt;/code&gt;. Although the extant configuration file does
+not explicitly specify a port number here, the default port for type &lt;code&gt;forward&lt;/code&gt;
+is, in fact, 24224. This will result in an &amp;ldquo;Address already in use&amp;rdquo; error, and
+the fluentd daemon will fail to start. The solution is to remember that only one
+source may be bound to a single port.&lt;/p&gt;
 </description>
     </item>
     
