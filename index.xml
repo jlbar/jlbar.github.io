@@ -6,64 +6,94 @@
     <description>Recent content on notes and stuff</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Wed, 24 Aug 2016 15:16:03 -0500</lastBuildDate>
+    <lastBuildDate>Thu, 01 Sep 2016 08:08:54 -0500</lastBuildDate>
     <atom:link href="https://jlbar.github.io/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
-      <title>Logging with Fluentd</title>
-      <link>https://jlbar.github.io/post/08-23-2016_fluentd/</link>
-      <pubDate>Wed, 24 Aug 2016 15:16:03 -0500</pubDate>
+      <title>Periodicity in Financial Time Series</title>
+      <link>https://jlbar.github.io/post/08-29-2016_fourier-transform/</link>
+      <pubDate>Thu, 01 Sep 2016 08:08:54 -0500</pubDate>
       
-      <guid>https://jlbar.github.io/post/08-23-2016_fluentd/</guid>
+      <guid>https://jlbar.github.io/post/08-29-2016_fourier-transform/</guid>
       <description>
 
-&lt;p&gt;Fluentd is an open source data collector that comprises several critical
-functions necessary to expose a centralized, unified logging layer across a set
-of applications and infrastructure. Fluentd allows logging data to be streamed
-from disparate applications into a central persistence layer such as an
-Elasticsearch cluster. The fluentd architecture provides durable writes,
-reliable delivery over a network, high availability, and massive scale.&lt;/p&gt;
+&lt;p&gt;I will make a first pass through several sources, then condense my notes into
+something more unified and coherent. Each source will have its own section.&lt;/p&gt;
 
-&lt;h2 id=&#34;high-availability&#34;&gt;High Availability&lt;/h2&gt;
+&lt;h2 id=&#34;the-fourier-transform-and-its-applications&#34;&gt;The Fourier Transform and its Applications&lt;/h2&gt;
 
-&lt;p&gt;Fluentd&amp;rsquo;s high availability configuration involves two distinct entities:
-forwarders and aggregators. Forwarders are instantiated on individual servers,
-and are responsible for durable writes, buffering, and reliably sending events
-to downstream aggregators. Aggregators are responsible for collecting events
-from potentially multiple forwarders. In turn, those events are buffered and
-sent along to some persistence layer.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://see.stanford.edu/materials/lsoftaee261/book-fall-07.pdf&#34;&gt;source&lt;/a&gt;&lt;/p&gt;
 
-&lt;h2 id=&#34;durability&#34;&gt;Durability&lt;/h2&gt;
+&lt;h3 id=&#34;periodic-phenomena&#34;&gt;Periodic Phenomena&lt;/h3&gt;
 
-&lt;p&gt;Forwarders and aggregators both support durable writes. In either case, when an
-event is received, fluentd will first write the data locally to disk. Data is
-buffered on disk for some configurable time interval. Once each cycle has
-expired, data is either forwarded to an aggregator or a persistence layer. If a
-fluentd process is terminated, any buffered data is picked up once the process
-restarts. Data transfer is similarly robust in that, in the event of a network
-partition, fluentd will automatically retry.&lt;/p&gt;
+&lt;p&gt;The most important principle of the subject at hand is the following.&lt;/p&gt;
 
-&lt;h2 id=&#34;containers-and-orchestration&#34;&gt;Containers and Orchestration&lt;/h2&gt;
+&lt;p&gt;And another edit.&lt;/p&gt;
 
-&lt;p&gt;Implemented correctly, containers are immutable and ephemeral. This presents a
-particular set of challenges when attempting to persist application logs in the
-traditional manner, on the application server&amp;rsquo;s filesystem. In this case,
-fluentd provides a particularly attractive solution.&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;Every signal has a spectrum and is determined by its spectrum. You can analyze
+the signal either in the time (or spatial) domain or in the frequency domain.&lt;/em&gt;&lt;/p&gt;
 
-&lt;p&gt;Docker 1.8 saw the release of a native fluentd logging driver, which greatly
-simplified the implementation of a centralized logging solution in a
-containerized environment. An example architecture, using containers and the
-fluentd high availability configuration, is given below.&lt;/p&gt;
+&lt;h3 id=&#34;time-and-space&#34;&gt;Time and Space&lt;/h3&gt;
 
-&lt;p&gt;&lt;img src=&#34;https://jlbar.github.io/img/fluentd_container_architecture.png&#34; alt=&#34;this is an image&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;Time and stuff&amp;hellip;&lt;/p&gt;
 
-&lt;h2 id=&#34;practical-issues&#34;&gt;Practical Issues&lt;/h2&gt;
+&lt;p&gt;We think about periodic phenomena in two distinct contexts: &lt;em&gt;time&lt;/em&gt; and &lt;em&gt;space&lt;/em&gt;.&lt;/p&gt;
 
-&lt;p&gt;There are several critical OS-level configuration concerns which must be
-addressed with any production fluentd installation. These are detailed
-&lt;a href=&#34;http://docs.fluentd.org/articles/before-install&#34;&gt;here&lt;/a&gt; and include items such
-as increasing the maximum number of open file descriptors, along with various
-network optimizations.&lt;/p&gt;
+&lt;p&gt;When an event is periodic in time, the phenomenon comes to you. Examples include
+sound and waves on a shoreline. When an event is periodic in space, you come to
+the phenomenon. An example is observing a picture and noting repeating patterns.&lt;/p&gt;
+
+&lt;p&gt;Physically, the fourier transform will represent the frequency components of a
+function or signal. A fundamental result of fourier series states that any
+periodic phenomena may be expressed as a combination of sines and cosines of
+varying frequencies.&lt;/p&gt;
+
+&lt;h2 id=&#34;analysis-of-financial-time-series-using-fourier-and-wavelet-methods&#34;&gt;Analysis of Financial Time Series using Fourier and Wavelet Methods&lt;/h2&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.664.9412&amp;amp;rep=rep1&amp;amp;type=pdf&#34;&gt;source&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;This paper presents a set of methods in the field of &lt;em&gt;frequency domain
+analysis&lt;/em&gt;. Spectral analysis and filtering methods are two important techniques.
+Spectral analysis can be used to identify the different frequency components of
+a time series. Filters allow us to capture trends, cycles, and seasonality.
+Filters may also be used to eliminate specific frequency components from the
+original time series.&lt;/p&gt;
+
+&lt;p&gt;The second part of the paper discusses wavelets. Frequency domain analysis
+techniques such as fourier analysis eliminate the time domain altogether from
+the representation. Only the frequency domain is present in the representation.
+Wavelets are unique and attractive in that they provide a complete
+representation from both the time and the frequency domains simultaneously.&lt;/p&gt;
+
+&lt;p&gt;Further, wavelets do not suffer from many of the traditional limitations of
+frequency domain methods. A &lt;em&gt;stationary&lt;/em&gt; time series is one whose statistical
+properties (mean, variance, autocorrelation, etc.) are all constant over time.
+Spectral methods and fourier transforms require stationary data. This is very
+often not the case in the financial domain. Volatility may manifest in many
+forms due to many external factors.&lt;/p&gt;
+
+&lt;h3 id=&#34;frequency-domain-analysis&#34;&gt;Frequency Domain Analysis&lt;/h3&gt;
+
+&lt;p&gt;We will divide the discussion of frequency analysis into two sections: one on
+&lt;em&gt;spectral analysis&lt;/em&gt; and one on &lt;em&gt;filtering techniques&lt;/em&gt;.&lt;/p&gt;
+
+&lt;h4 id=&#34;spectral-analysis&#34;&gt;Spectral Analysis&lt;/h4&gt;
+
+&lt;p&gt;The field of time series analysis involves the study of a variable in the time
+domain. Spectral analysis, on the other hand, studies the properties of a
+variable over the frequency domain. Specifically, the goal is to explain the
+variance in a variable by describing how the variance may be split into a
+variety of frequency components.&lt;/p&gt;
+
+&lt;h2 id=&#34;sources&#34;&gt;Sources&lt;/h2&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://robjhyndman.com/hyndsight/longseasonality/&#34;&gt;http://robjhyndman.com/hyndsight/longseasonality/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf&#34;&gt;http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.le.ac.uk/users/dsgp1/COURSES/LEIMETZ/FOURIER.pdf&#34;&gt;http://www.le.ac.uk/users/dsgp1/COURSES/LEIMETZ/FOURIER.pdf&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf&#34;&gt;http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf&#34;&gt;http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
 </description>
     </item>
     

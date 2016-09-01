@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+<head>
+  <title>
+    Periodicity in Financial Time Series // notes and stuff
+  </title>
+
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+<meta name="description" content="">
+<meta name="keywords" content="">
+<meta name="author" content="">
+<meta name="generator" content="Hugo 0.16" />
+
+  <meta property="og:title" content="Periodicity in Financial Time Series" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:url" content="https://jlbar.github.io/post/08-29-2016_fourier-transform/" />
+
+
+  
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.5.0/base-min.css">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.5.0/pure-min.css">
+  
+  
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.5.0/grids-responsive-min.css">
+  
+  
+
+  <link rel="stylesheet" href="https://jlbar.github.io/css/redlounge.css">
+  <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href='//fonts.googleapis.com/css?family=Raleway:400,200,100,700,300,500,600,800' rel='stylesheet' type='text/css'>
+  <link href='//fonts.googleapis.com/css?family=Libre+Baskerville:400,700,400italic' rel='stylesheet' type='text/css'>
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  <link href="" rel="alternate" type="application/rss+xml" title="notes and stuff" />
+
+    
+  
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.7/styles/tomorrow-night-bright.min.css">
+  
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.7/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+
+  
+
+  
+
+  
+
+  
+</head>
+
+<body>
+	
+
+	<div id="layout" class="pure-g">
+    <div class="sidebar pure-u-1 pure-u-md-1-4">
+  <div class="header">
+    
+
+	
+
+    <h1 class="brand-title">notes and stuff</h1>
+    <h2 class="brand-tagline">A placeholder for miscellaneous observations</h2>
+
+    <nav class="nav">
+      <ul class="nav-list">
+        <li class="nav-item"><span class="nav-item-separator">//</span><a href="https://jlbar.github.io">Home</a></li>
+        
+      </ul>
+    </nav>
+
+    
+
+  </div>
+</div>
+
+	
+	
+
+    <div class="content pure-u-1 pure-u-md-3-4">
+		<a name="top"></a>
+		
+
+		
+			
+		    <div id="toc" class="pure-u-1 pure-u-md-1-4">
+				<small class="toc-label">Contents</small>
+		   	 	<nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#the-fourier-transform-and-its-applications">The Fourier Transform and its Applications</a>
+<ul>
+<li><a href="#periodic-phenomena">Periodic Phenomena</a></li>
+<li><a href="#time-and-space">Time and Space</a></li>
+</ul></li>
+<li><a href="#analysis-of-financial-time-series-using-fourier-and-wavelet-methods">Analysis of Financial Time Series using Fourier and Wavelet Methods</a>
+<ul>
+<li><a href="#frequency-domain-analysis">Frequency Domain Analysis</a>
+<ul>
+<li><a href="#spectral-analysis">Spectral Analysis</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#sources">Sources</a></li>
+</ul></li>
+</ul>
+</nav>
+		    </div>
+		    
+	    
+  		<section class="post">
+            <h1 class="post-title">
+              <a href="/post/08-29-2016_fourier-transform/">Periodicity in Financial Time Series</a>
+            </h1>
+            <h3 class="post-subtitle">
+            	
+            </h3>
+            
+            	<span class="post-date">
+                	<span class="post-date-day"><sup>1</sup></span><span class="post-date-separator">/</span><span class="post-date-month">Sep</span> <span class="post-date-year">2016</span>
+            	</span>
+            	
+            
+            	
+            
+
+			
+			
+
+			
+
+			
+
+            
+
+<p>I will make a first pass through several sources, then condense my notes into
+something more unified and coherent. Each source will have its own section.</p>
+
+<h2 id="the-fourier-transform-and-its-applications">The Fourier Transform and its Applications</h2>
+
+<p><a href="https://see.stanford.edu/materials/lsoftaee261/book-fall-07.pdf">source</a></p>
+
+<h3 id="periodic-phenomena">Periodic Phenomena</h3>
+
+<p>The most important principle of the subject at hand is the following.</p>
+
+<p>And another edit.</p>
+
+<p><em>Every signal has a spectrum and is determined by its spectrum. You can analyze
+the signal either in the time (or spatial) domain or in the frequency domain.</em></p>
+
+<h3 id="time-and-space">Time and Space</h3>
+
+<p>Time and stuff&hellip;</p>
+
+<p>We think about periodic phenomena in two distinct contexts: <em>time</em> and <em>space</em>.</p>
+
+<p>When an event is periodic in time, the phenomenon comes to you. Examples include
+sound and waves on a shoreline. When an event is periodic in space, you come to
+the phenomenon. An example is observing a picture and noting repeating patterns.</p>
+
+<p>Physically, the fourier transform will represent the frequency components of a
+function or signal. A fundamental result of fourier series states that any
+periodic phenomena may be expressed as a combination of sines and cosines of
+varying frequencies.</p>
+
+<h2 id="analysis-of-financial-time-series-using-fourier-and-wavelet-methods">Analysis of Financial Time Series using Fourier and Wavelet Methods</h2>
+
+<p><a href="http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.664.9412&amp;rep=rep1&amp;type=pdf">source</a></p>
+
+<p>This paper presents a set of methods in the field of <em>frequency domain
+analysis</em>. Spectral analysis and filtering methods are two important techniques.
+Spectral analysis can be used to identify the different frequency components of
+a time series. Filters allow us to capture trends, cycles, and seasonality.
+Filters may also be used to eliminate specific frequency components from the
+original time series.</p>
+
+<p>The second part of the paper discusses wavelets. Frequency domain analysis
+techniques such as fourier analysis eliminate the time domain altogether from
+the representation. Only the frequency domain is present in the representation.
+Wavelets are unique and attractive in that they provide a complete
+representation from both the time and the frequency domains simultaneously.</p>
+
+<p>Further, wavelets do not suffer from many of the traditional limitations of
+frequency domain methods. A <em>stationary</em> time series is one whose statistical
+properties (mean, variance, autocorrelation, etc.) are all constant over time.
+Spectral methods and fourier transforms require stationary data. This is very
+often not the case in the financial domain. Volatility may manifest in many
+forms due to many external factors.</p>
+
+<h3 id="frequency-domain-analysis">Frequency Domain Analysis</h3>
+
+<p>We will divide the discussion of frequency analysis into two sections: one on
+<em>spectral analysis</em> and one on <em>filtering techniques</em>.</p>
+
+<h4 id="spectral-analysis">Spectral Analysis</h4>
+
+<p>The field of time series analysis involves the study of a variable in the time
+domain. Spectral analysis, on the other hand, studies the properties of a
+variable over the frequency domain. Specifically, the goal is to explain the
+variance in a variable by describing how the variance may be split into a
+variety of frequency components.</p>
+
+<h2 id="sources">Sources</h2>
+
+<ul>
+<li><a href="http://robjhyndman.com/hyndsight/longseasonality/">http://robjhyndman.com/hyndsight/longseasonality/</a></li>
+<li><a href="http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf">http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf</a></li>
+<li><a href="http://www.le.ac.uk/users/dsgp1/COURSES/LEIMETZ/FOURIER.pdf">http://www.le.ac.uk/users/dsgp1/COURSES/LEIMETZ/FOURIER.pdf</a></li>
+<li><a href="http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf">http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf</a></li>
+<li><a href="http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf">http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf</a></li>
+</ul>
+
+	
+			
+
+			
+
+			
+				<div class="paging">
+					<span class="paging-label">More Reading</span>
+					
+
+					
+					<div class="paging-older">
+						<span class="dark-red">Older</span><span class="decorative-marker">//</span>
+			            <a class="paging-link" href="/post/first/">first</a>
+		            </div>
+		            
+	            </div>
+            
+          </section>
+          
+          	
+          
+        
+      <div class="footer">
+	<hr class="thin" />
+	<div class="pure-menu pure-menu-horizontal pure-menu-open">
+		<ul class="footer-menu">
+		
+		</ul>
+	</div>
+
+	<p>&copy; 2016. All rights reserved.</p>
+</div>
+    </div>
+  </div>
+	
+
+	
+
+  
+</body>
+</html>
