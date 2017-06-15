@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
 <head>
   <title>
-    Vagrant Multi-Machine // notes and stuff
+    Recommendations with Pyspark // notes and stuff
   </title>
 
   <link href="http://gmpg.org/xfn/11" rel="profile">
@@ -16,11 +16,11 @@
 <meta name="author" content="">
 <meta name="generator" content="Hugo 0.16" />
 
-  <meta property="og:title" content="Vagrant Multi-Machine" />
+  <meta property="og:title" content="Recommendations with Pyspark" />
 <meta property="og:description" content="" />
 <meta property="og:type" content="website" />
 <meta property="og:locale" content="en_US" />
-<meta property="og:url" content="https://jlbar.github.io/post/09-06-2016_vagrant-multi-machine/" />
+<meta property="og:url" content="https://jlbar.github.io/post/12-29-2016_pyspark/" />
 
 
   
@@ -101,7 +101,9 @@
 <ul>
 <li>
 <ul>
-<li><a href="#multi-machine">Multi-Machine</a></li>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#shell-usage">Shell Usage</a></li>
+<li><a href="#training-data">Training Data</a></li>
 </ul></li>
 </ul>
 </nav>
@@ -110,7 +112,7 @@
 	    
   		<section class="post">
             <h1 class="post-title">
-              <a href="/post/09-06-2016_vagrant-multi-machine/">Vagrant Multi-Machine</a>
+              <a href="/post/12-29-2016_pyspark/">Recommendations with Pyspark</a>
             </h1>
             <h3 class="post-subtitle">
             	
@@ -133,25 +135,35 @@
 
             
 
-<p>Vagrant is a powerful and convenient tool for provisioning and managing virtual
-machines. One of my most common use cases for Vagrant involves standing up a
-semi-real-world environment for the evaluation of some distributed system. The
-disparate set of examples where Vagrant has been useful to me in this context
-includes Cassandra, Spark, etcd, docker, kubernetes, consul, and many more.</p>
+<p>I will detail some of the basic components involved in generating
+recommendations using pyspark&rsquo;s alternating least squares matrix factorization
+methods.</p>
 
-<p>Often, the manner in which the components of such systems interact over the
-network is at the heart of such an investigation. There do exist other options
-for performing this analysis. For instance, each component of a distributed
-system might be flattened down onto a single machine. This provides a
-convenience benefit, but is an inaccurate model of a real world system.
-Similarly, the use of a container runtime such as Docker provides a convenient
-means to instantiate the components of a distributed system, but Docker&rsquo;s
-networking model does not provide a compelling real world simulation of
-different services running on different machines. Vagrant&rsquo;s multi machine
-feature provides a solution to this issue that is at once convenient and
-sufficiently comparable to real world networking scenarios.</p>
+<h2 id="installation">Installation</h2>
 
-<h2 id="multi-machine">Multi-Machine</h2>
+<p>I used homebrew on OSX as follows.</p>
+
+<pre><code class="language-bash">$ brew install apache-spark
+</code></pre>
+
+<p>I may well have done some additional configuration work after the install, but I
+have since forgotten about any of that.</p>
+
+<h2 id="shell-usage">Shell Usage</h2>
+
+<p>Pyspark comes packed with a shell utility, which is callable from the command
+line via the <code>pyspark</code> command. Alternatively, it is possible to launch the
+pyspark shell within ipython. To use ipython, set the
+<code>PYSPARK_DRIVER_IPYTHON</code>variable to <code>ipython</code> when invoking pyspark as follows.</p>
+
+<pre><code>$ PYSPARK_DRIVER_IPYTHON=ipython pyspark
+</code></pre>
+
+<h2 id="training-data">Training Data</h2>
+
+<p>In order to train a model, we must first load data. Pyspark&rsquo;s
+<code>ALS.trainImplicit</code> method expects either an RDD or tuple that admits the
+structure: (userID, productID, rating).</p>
 
 	
 			
@@ -164,14 +176,14 @@ sufficiently comparable to real world networking scenarios.</p>
 					
 					<div class="paging-newer">
 						<span class="dark-red">Newer</span><span class="decorative-marker">//</span>
-						<a class="paging-link" href="/post/01-09-2017_recommendation-techniques/">Recommendation Techniques</a>
+						<a class="paging-link" href="/post/10-24-2016_dev-env/">CLI Development Environment, Look and Feel</a>
 		            </div>
 		            
 
 					
 					<div class="paging-older">
 						<span class="dark-red">Older</span><span class="decorative-marker">//</span>
-			            <a class="paging-link" href="/post/08-29-2016_fourier-transform/">Periodicity in Financial Time Series</a>
+			            <a class="paging-link" href="/post/01-09-2017_recommendation-techniques/">Recommendation Techniques</a>
 		            </div>
 		            
 	            </div>

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+<head>
+  <title>
+    CLI Development Environment, Look and Feel // notes and stuff
+  </title>
+
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+<meta name="description" content="">
+<meta name="keywords" content="">
+<meta name="author" content="">
+<meta name="generator" content="Hugo 0.16" />
+
+  <meta property="og:title" content="CLI Development Environment, Look and Feel" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:url" content="https://jlbar.github.io/post/10-24-2016_dev-env/" />
+
+
+  
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.5.0/base-min.css">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.5.0/pure-min.css">
+  
+  
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.5.0/grids-responsive-min.css">
+  
+  
+
+  <link rel="stylesheet" href="https://jlbar.github.io/css/redlounge.css">
+  <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href='//fonts.googleapis.com/css?family=Raleway:400,200,100,700,300,500,600,800' rel='stylesheet' type='text/css'>
+  <link href='//fonts.googleapis.com/css?family=Libre+Baskerville:400,700,400italic' rel='stylesheet' type='text/css'>
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  <link href="" rel="alternate" type="application/rss+xml" title="notes and stuff" />
+
+    
+  
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.7/styles/tomorrow-night-bright.min.css">
+  
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.7/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+
+  
+
+  
+
+  
+
+  
+</head>
+
+<body>
+	
+
+	<div id="layout" class="pure-g">
+    <div class="sidebar pure-u-1 pure-u-md-1-4">
+  <div class="header">
+    
+
+	
+
+    <h1 class="brand-title">notes and stuff</h1>
+    <h2 class="brand-tagline">A placeholder for miscellaneous observations</h2>
+
+    <nav class="nav">
+      <ul class="nav-list">
+        <li class="nav-item"><span class="nav-item-separator">//</span><a href="https://jlbar.github.io">Home</a></li>
+        
+      </ul>
+    </nav>
+
+    
+
+  </div>
+</div>
+
+	
+	
+
+    <div class="content pure-u-1 pure-u-md-3-4">
+		<a name="top"></a>
+		
+
+		
+			
+		    <div id="toc" class="pure-u-1 pure-u-md-1-4">
+				<small class="toc-label">Contents</small>
+		   	 	<nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#a-note-on-color-themes">A Note on Color Themes</a></li>
+<li><a href="#terminal-app">Terminal.app</a>
+<ul>
+<li><a href="#hack-font">Hack Font</a></li>
+<li><a href="#base16-default-profile">Base16 Default Profile</a></li>
+</ul></li>
+<li><a href="#dotfiles">Dotfiles</a></li>
+<li><a href="#zsh">Zsh</a></li>
+<li><a href="#tmux">Tmux</a></li>
+<li><a href="#vim">Vim</a></li>
+</ul></li>
+</ul>
+</nav>
+		    </div>
+		    
+	    
+  		<section class="post">
+            <h1 class="post-title">
+              <a href="/post/10-24-2016_dev-env/">CLI Development Environment, Look and Feel</a>
+            </h1>
+            <h3 class="post-subtitle">
+            	
+            </h3>
+            
+            	<span class="post-date">
+                	<span class="post-date-day"><sup>15</sup></span><span class="post-date-separator">/</span><span class="post-date-month">Jun</span> <span class="post-date-year">2017</span>
+            	</span>
+            	
+            
+            	
+            
+
+			
+			
+
+			
+
+			
+
+            
+
+<p>Here, I will detail the installation and configuration of the foundational
+components comprising the local development environment on my laptop. This post
+is not meant to be exhaustive, and will focus primarily on look-and-feel items.
+For simplicity, I will focus on the three primary components of my development
+environment: the shell (zsh), the terminal multiplexer (tmux), and the editor
+(vim).</p>
+
+<h2 id="a-note-on-color-themes">A Note on Color Themes</h2>
+
+<p>There exist a dizzying array of available color themes across the applications I
+use. So many, in fact, that it is easy for me to become inundated by the sheer
+number of options available. Thus, I will make it simple: use the base16 color
+theme. Use it everywhere. In order to use the base16 theme in vim, I must make
+the colors available in my terminal emulator. The base16 theme is pleasant,
+well-maintained, and available across multiple platforms including vim and
+Terminal.app.</p>
+
+<h2 id="terminal-app">Terminal.app</h2>
+
+<p>I use the OSX Terminal.app terminal emulator. I chose this as opposed to the
+popular iTerm2 because Terminal.app comes with the OS and is one less dependency
+to manage. Very little configuration is required of Terminal.app, but I do
+supply two pieces of customization: the Hack font, and the base16 color theme.</p>
+
+<h3 id="hack-font">Hack Font</h3>
+
+<p>On OSX, fonts are now manageable via homebrew. To install the hack font, execute
+the following.</p>
+
+<pre><code class="language-bash">$ brew tap caskroom/fonts
+$ brew cask install font-hack
+</code></pre>
+
+<h3 id="base16-default-profile">Base16 Default Profile</h3>
+
+<p>In the OSX Terminal.app, &ldquo;profiles&rdquo; set many more configurable items beyond the
+16-color pallette. These items include the shape of the cursor, opacity of the
+terminal background, audio and visual bell enablement, text encoding, and many
+more.</p>
+
+<p>Critically, the profile may also declare the terminal as <code>xterm-256color</code>. The
+terminal configuration itself is, in fact, the correct place to make this
+declaration as opposed to the alternatives of declaring it either in <code>.vimrc</code> or
+<code>.zshrc</code>. Each of those applications are consumers of the terminal and have no
+business declaring the terminal&rsquo;s color capabilities.</p>
+
+<p>To make the default base16 color theme available to Terminal.app, I will need to
+download the appropriate <code>.terminal</code> file. To do this, simply execute the
+following.</p>
+
+<pre><code class="language-bash">git clone https://github.com/vbwx/base16-terminal-app.git
+</code></pre>
+
+<p>Now, go to Terminal/Preferences and find the Profiles tab. Choose &ldquo;import&rdquo; from
+the gear dropdown and find the &ldquo;Default Dark.terminal&rdquo; theme in the <code>/profiles</code>
+directory of the repo you just cloned.</p>
+
+<p>Once this is done, you may delete the repository. To make this the default
+profile, simply choose the appropriate option under the &ldquo;General&rdquo; tab.</p>
+
+<h2 id="dotfiles">Dotfiles</h2>
+
+<p>With an eye toward repeatability and ease of configuration, I do as much as
+possible from the dotfiles, and keep the files themselves under version control.
+From there, configuring a net new development environment is as simple as
+cloning my dotfiles repository and symlinking <code>.zshrc</code>, <code>.vimrc</code>, and
+<code>.tmux.conf</code> from my home directory.</p>
+
+<p>Specifically, the process involves two steps. First, Execute I execute something
+like the following from my home directory.</p>
+
+<pre><code class="language-bash">$ git clone https://github.com/jlbar/dotfiles.git
+</code></pre>
+
+<p>This creates the directory <code>~/dotfiles</code>. Next, execute the following to define
+the appropriate symlinks.</p>
+
+<pre><code class="language-bash">$ ln -s ~/dotfiles/tmux/tmux.conf ~/.tmux.conf
+$ ln -s ~/dotfiles/zsh/zshrc ~/.zshrc
+$ ln -s ~/dotfiles/vim/vimrc ~/.vimrc
+</code></pre>
+
+<p>Now that the dotfiles are pulled and linked, we may discuss the details of
+configuring the look and feel of the CLI by visiting each component separately.</p>
+
+<h2 id="zsh">Zsh</h2>
+
+<p>I use oh-my-zsh plugins and themes to manage my zsh configuration. Relating
+specifically to look-and-feel, I use the excellent Bullet Train theme. Since
+Bullet Train is not one of the default oh-my-zsh themes, some additional work is
+required.</p>
+
+<p>Specifically, oh-my-zsh allows for customization by defining the
+<code>$ZSH_CUSTOM</code> variable, which defaults to <code>~/.oh-my-zsh/custom</code>. By default, git
+is set to ignore the custom directory, so that oh-my-zsh&rsquo;s update process does
+not interfere with any user customizations.</p>
+
+<p>To install the Bullet Train theme, create the <code>/themes</code> directory as follows.</p>
+
+<pre><code class="language-bash">$ mkdir $ZSH_CUSTOM/themes
+</code></pre>
+
+<p>Next, download the Bullet Train theme.</p>
+
+<pre><code class="language-bash">$ curl -O https://raw.githubusercontent.com/caiogondim/bullet-train-oh-my-zsh-theme/master/bullet-train.zsh-theme
+</code></pre>
+
+<p>Finally, configure the zsh theme in <code>.zshrc</code> in the typical fashion as follows.</p>
+
+<pre><code>ZSH_THEME=&quot;bullet-train&quot;
+</code></pre>
+
+<p>These installation notes are condensed from the Bullet Train project&rsquo;s README,
+located here:</p>
+
+<p><a href="https://github.com/caiogondim/bullet-train-oh-my-zsh-theme">https://github.com/caiogondim/bullet-train-oh-my-zsh-theme</a></p>
+
+<h2 id="tmux">Tmux</h2>
+
+<p>I use the tmux Maglev theme, which is designed to work with Bullet Train. Maglev
+requires the tmux plugin manager, <code>tpm</code>, located here:</p>
+
+<p><a href="https://github.com/tmux-plugins/tpm">https://github.com/tmux-plugins/tpm</a></p>
+
+<p>Installation of <code>tpm</code> is straightforward and involves the creation of a
+<code>~/.tmux</code> directory where plugins are stored.</p>
+
+<h2 id="vim">Vim</h2>
+
+<p>For vim, as with zsh, I also use the base16 color theme, available here:</p>
+
+<p><a href="https://github.com/chriskempson/base16-vim">https://github.com/chriskempson/base16-vim</a></p>
+
+<p>In keeping with the status line theme established in zsh with Bullet Train and in
+tmux with Maglev, in vim, I use the vim-airline status line, available here:</p>
+
+<p><a href="https://github.com/vim-airline/vim-airline">https://github.com/vim-airline/vim-airline</a></p>
+
+	
+			
+
+			
+
+			
+				<div class="paging">
+					<span class="paging-label">More Reading</span>
+					
+					<div class="paging-newer">
+						<span class="dark-red">Newer</span><span class="decorative-marker">//</span>
+						<a class="paging-link" href="/post/11-02-2016_fluentd-details/">Fluentd Configuration Details</a>
+		            </div>
+		            
+
+					
+					<div class="paging-older">
+						<span class="dark-red">Older</span><span class="decorative-marker">//</span>
+			            <a class="paging-link" href="/post/12-29-2016_pyspark/">Recommendations with Pyspark</a>
+		            </div>
+		            
+	            </div>
+            
+          </section>
+          
+          	
+          
+        
+      <div class="footer">
+	<hr class="thin" />
+	<div class="pure-menu pure-menu-horizontal pure-menu-open">
+		<ul class="footer-menu">
+		
+		</ul>
+	</div>
+
+	<p>&copy; 2017. All rights reserved.</p>
+</div>
+    </div>
+  </div>
+	
+
+	
+
+  
+</body>
+</html>

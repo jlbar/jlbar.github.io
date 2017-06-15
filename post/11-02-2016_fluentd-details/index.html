@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+<head>
+  <title>
+    Fluentd Configuration Details // notes and stuff
+  </title>
+
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+<meta name="description" content="">
+<meta name="keywords" content="">
+<meta name="author" content="">
+<meta name="generator" content="Hugo 0.16" />
+
+  <meta property="og:title" content="Fluentd Configuration Details" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:url" content="https://jlbar.github.io/post/11-02-2016_fluentd-details/" />
+
+
+  
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.5.0/base-min.css">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.5.0/pure-min.css">
+  
+  
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.5.0/grids-responsive-min.css">
+  
+  
+
+  <link rel="stylesheet" href="https://jlbar.github.io/css/redlounge.css">
+  <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href='//fonts.googleapis.com/css?family=Raleway:400,200,100,700,300,500,600,800' rel='stylesheet' type='text/css'>
+  <link href='//fonts.googleapis.com/css?family=Libre+Baskerville:400,700,400italic' rel='stylesheet' type='text/css'>
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  <link href="" rel="alternate" type="application/rss+xml" title="notes and stuff" />
+
+    
+  
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.7/styles/tomorrow-night-bright.min.css">
+  
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.7/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+
+  
+
+  
+
+  
+
+  
+</head>
+
+<body>
+	
+
+	<div id="layout" class="pure-g">
+    <div class="sidebar pure-u-1 pure-u-md-1-4">
+  <div class="header">
+    
+
+	
+
+    <h1 class="brand-title">notes and stuff</h1>
+    <h2 class="brand-tagline">A placeholder for miscellaneous observations</h2>
+
+    <nav class="nav">
+      <ul class="nav-list">
+        <li class="nav-item"><span class="nav-item-separator">//</span><a href="https://jlbar.github.io">Home</a></li>
+        
+      </ul>
+    </nav>
+
+    
+
+  </div>
+</div>
+
+	
+	
+
+    <div class="content pure-u-1 pure-u-md-3-4">
+		<a name="top"></a>
+		
+
+		
+			
+		    <div id="toc" class="pure-u-1 pure-u-md-1-4">
+				<small class="toc-label">Contents</small>
+		   	 	<nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#environment-setup">Environment Setup</a>
+<ul>
+<li><a href="#application-host">Application Host</a></li>
+<li><a href="#elasticsearch-kibana-host">Elasticsearch/Kibana Host</a></li>
+</ul></li>
+<li><a href="#individual-components">Individual Components</a>
+<ul>
+<li><a href="#docker">Docker</a></li>
+<li><a href="#fluentd">Fluentd</a></li>
+<li><a href="#fluentd-configuration">Fluentd Configuration</a></li>
+<li><a href="#fluentd-with-docker">Fluentd With Docker</a></li>
+</ul></li>
+<li><a href="#application-logging">Application Logging</a></li>
+<li><a href="#fluentd-to-elasticsearch">Fluentd to Elasticsearch</a></li>
+<li><a href="#fluentd-ha-and-failure-scenarios">Fluentd HA and Failure Scenarios</a></li>
+</ul></li>
+</ul>
+</nav>
+		    </div>
+		    
+	    
+  		<section class="post">
+            <h1 class="post-title">
+              <a href="/post/11-02-2016_fluentd-details/">Fluentd Configuration Details</a>
+            </h1>
+            <h3 class="post-subtitle">
+            	
+            </h3>
+            
+            	<span class="post-date">
+                	<span class="post-date-day"><sup>15</sup></span><span class="post-date-separator">/</span><span class="post-date-month">Jun</span> <span class="post-date-year">2017</span>
+            	</span>
+            	
+            
+            	
+            
+
+			
+			
+
+			
+
+			
+
+            
+
+<p>Here, I will detail the minutia of configuring fluentd in both simple and more
+complex, production-like environments. For brevity and repeatability, I will
+detail these configurations in environments build solely on my laptop, with an
+eye toward replicating what you might see in production as accurately as
+possible.</p>
+
+<h2 id="environment-setup">Environment Setup</h2>
+
+<p>I use a combination of Docker and Vagrant, running locally on my laptop, to
+instantiate a decent simulation of distinct machines communicating over some
+network in a datacenter or cloud provider. This certainly could have been
+achieved using only Vagrant or only Docker, but I found it more convenient to
+use a combination of both. Perhaps I will change that for consistency at some
+later date.</p>
+
+<h3 id="application-host">Application Host</h3>
+
+<p>Vagrant is used to instantiate the box that will serve as our application host
+OS. This host will expose the Docker runtime responsible for managing our
+application containers. In addition, this host will run the fluentd daemon,
+which will work in conjunction with Docker&rsquo;s fluentd logging driver to capture
+output from running containers&rsquo; <code>stdout</code> and <code>stderr</code> and forward that output to
+some downstream consumer: either a fluentd aggregator or elasticsearch.</p>
+
+<p>To set up a minimal Vagrant box that contains only those dependencies I require
+for the current project (that is, docker and fluentd), I will provision my own
+VM. To accomplish this, I will need two items: one <code>Vagrantfile</code> and one shell
+script which holds the actual provisioning commands. The provisioning script,
+named <code>provision.sh</code> here, is as follows.</p>
+
+<pre><code>#!/bin/bash
+
+# Provisioning script to install Docker, fluentd, vim, and several other tools
+
+
+# Install fluentd 
+curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.sh | sh
+
+
+# Install Docker Engine
+sudo yum -y update
+
+# Install using script
+curl -fsSL https://get.docker.com/ | sh
+
+# Enable the service and start daemon
+sudo systemctl enable docker.service
+sudo systemctl start docker
+
+# Configure the Docker daemon to start on boot
+sudo systemctl enable docker
+
+
+# Install elasticsearch fluentd plugin
+/usr/sbin/td-agent-gem install fluent-plugin-elasticsearch
+
+
+# Install vim
+sudo yum install -y vim
+</code></pre>
+
+<p>The <code>Vagrantfile</code> is as follows.</p>
+
+<pre><code># -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(&quot;2&quot;) do |config|
+  config.vm.box = &quot;centos/7&quot;
+
+  config.vm.provision :shell, path: &quot;provision.sh&quot;
+end
+</code></pre>
+
+<p>Note that the <code>Vagrantfile</code> simply consists of declaring a minimal &ldquo;base&rdquo; box,
+in this case Centos/7, and then provisioning that box with Docker and fluentd by
+calling the <code>config.vm.provision</code> command. From the command line, <code>vagrant up</code>
+will build, provision, and start the box.</p>
+
+<p>Once the box is up, <code>vagrant ssh</code> into it and execute the following to get the
+IP address with which to reference my laptop (the Docker host) from the Vagrant
+box.</p>
+
+<pre><code class="language-bash">$ netstat -rn
+</code></pre>
+
+<p>I will need this IP later to tell fluentd where the elasticsearch instance is
+located.</p>
+
+<h3 id="elasticsearch-kibana-host">Elasticsearch/Kibana Host</h3>
+
+<p>Docker, running locally on my laptop, will be responsible for running the
+elasticsearch/kibana container. In this scenario, both the elasticsearch and the
+kibana instance will be available on <code>localhost</code> at ports 9200 and 5601,
+respectively. These are the default ports for those applications.</p>
+
+<p>For the purposes of this demonstration, I use a single container, available on
+docker hub at <a href="https://hub.docker.com/r/nshou/elasticsearch-kibana/">https://hub.docker.com/r/nshou/elasticsearch-kibana/</a>. Running
+this container with</p>
+
+<pre><code class="language-bash">$ docker run -d -p 9200:9200 -p 5601:5601 nshou/elasticsearch-kibana
+</code></pre>
+
+<p>will expose elasticsearch and kibana on <code>localhost</code> at their default ports as
+described.</p>
+
+<h2 id="individual-components">Individual Components</h2>
+
+<p>The application host, running Centos via the Vagrant box given above, has two
+core dependencies: Docker and Fluentd. I will detail the installation of each of
+these components below.</p>
+
+<h3 id="docker">Docker</h3>
+
+<p>The Docker runtime itself comes pre-installed on the vagrant box listed above.</p>
+
+<h3 id="fluentd">Fluentd</h3>
+
+<p>Like Docker, fluentd was provisioned in the Vagrant box defined above. The
+<code>/etc/init.d/td-agent</code> script is used to start, stop, and reload the agent. For
+example, to start fluentd, execute the following.</p>
+
+<pre><code class="language-bash">$ /etc/init.d/td-agent start
+</code></pre>
+
+<h3 id="fluentd-configuration">Fluentd Configuration</h3>
+
+<p>The configuration file is located at <code>/etc/td-agent/td-agent.conf</code>. This file
+contains a good deal of commented out boilerplate. Much of this is tailored
+specifically to the Treasure Data commercial offering and may be deleted. The
+td-agent configuration file is detailed here:</p>
+
+<p><a href="http://docs.fluentd.org/articles/config-file#">http://docs.fluentd.org/articles/config-file#</a></p>
+
+<p>and a more general depiction of the &ldquo;life of a fluentd event&rdquo; is here:</p>
+
+<p><a href="http://docs.fluentd.org/articles/life-of-a-fluentd-event">http://docs.fluentd.org/articles/life-of-a-fluentd-event</a></p>
+
+<p>In short, <code>&lt;source&gt;</code> nodes in the configuration file specify fluentd input
+sources, and <code>&lt;match&gt;</code> nodes specify outputs. Fluentd uses plugins as its
+extensibility mechanism. Sources are called &ldquo;input plugins&rdquo; and matches are
+called &ldquo;output plugins.&rdquo;</p>
+
+<p>To test the base installation, we will set up an http source and map output to
+stdout. As stated, this will require two nodes in <code>/etc/td-agent/td-agent.conf</code>.
+This is the <code>&lt;source&gt;</code> node:</p>
+
+<pre><code class="language-xml">&lt;source&gt;
+    @type http
+    port 8888
+&lt;/source&gt;
+</code></pre>
+
+<p>and this is the <code>&lt;match&gt;</code> node:</p>
+
+<pre><code class="language-xml">&lt;match test.cycle&gt;
+    @type stdout
+&lt;/match&gt;
+</code></pre>
+
+<p>Importantly, the http input plugin will take the url path and form a tag out of
+it. Note that the <code>&lt;match&gt;</code> node contains the text: &ldquo;test.cycle&rdquo;. This will
+force the instantiation of a rule where each <em>incoming</em> event that arrives with
+a tag equal to &ldquo;test.cycle&rdquo; will be written to stdout. It should be noted that,
+in this case, stdout is really just <code>td-agent</code>&rsquo;s log file.</p>
+
+<p>This configuration uses the <code>in_http</code> input plugin and the <code>out_stdout</code> output
+plugin. At this point, <code>td-agent</code> has been downloaded, but not started. Observe.</p>
+
+<pre><code class="language-bash">$ sudo /etc/init.d/td-agent start
+</code></pre>
+
+<p>Alternatively, if <code>td-agent</code> is already up, reload for the configuration changes
+to take effect.</p>
+
+<pre><code class="language-bash">$ /etc/init.d/td-agent reload
+</code></pre>
+
+<p>Now we may begin inspecting the <code>td-agent</code> logs. On startup, a log file is
+created at <code>/var/log/td-agent/td-agent.log</code>. At this point, the log will appear
+as follows.</p>
+
+<pre><code>2016-11-03 13:53:46 +0000 [info]: reading config file path=&quot;/etc/td-agent/td-agent.conf&quot;
+2016-11-03 13:53:46 +0000 [info]: starting fluentd-0.12.29
+2016-11-03 13:53:46 +0000 [info]: gem 'fluent-mixin-config-placeholders' version '0.4.0'
+2016-11-03 13:53:46 +0000 [info]: gem 'fluent-mixin-plaintextformatter' version '0.2.6'
+2016-11-03 13:53:46 +0000 [info]: gem 'fluent-plugin-kafka' version '0.3.1'
+2016-11-03 13:53:46 +0000 [info]: gem 'fluent-plugin-mongo' version '0.7.15'
+2016-11-03 13:53:46 +0000 [info]: gem 'fluent-plugin-rewrite-tag-filter' version '1.5.5'
+2016-11-03 13:53:46 +0000 [info]: gem 'fluent-plugin-s3' version '0.7.1'
+2016-11-03 13:53:46 +0000 [info]: gem 'fluent-plugin-scribe' version '0.10.14'
+2016-11-03 13:53:46 +0000 [info]: gem 'fluent-plugin-td' version '0.10.29'
+2016-11-03 13:53:46 +0000 [info]: gem 'fluent-plugin-td-monitoring' version '0.2.2'
+2016-11-03 13:53:46 +0000 [info]: gem 'fluent-plugin-webhdfs' version '0.4.2'
+2016-11-03 13:53:46 +0000 [info]: gem 'fluentd' version '0.12.29'
+2016-11-03 13:53:46 +0000 [info]: adding match pattern=&quot;test.cycle&quot; type=&quot;stdout&quot;
+2016-11-03 13:53:46 +0000 [info]: adding source type=&quot;http&quot;
+2016-11-03 13:53:46 +0000 [info]: using configuration file: &lt;ROOT&gt;
+  &lt;source&gt;
+    @type http
+    port 8888
+  &lt;/source&gt;
+  &lt;match test.cycle&gt;
+    @type stdout
+  &lt;/match&gt;
+&lt;/ROOT&gt;
+</code></pre>
+
+<p>As expected, fluentd can be seen reading the configuration file we edited at
+<code>/etc/td-agent/td-agent.conf</code>. Several ruby gems are loaded, then the <code>match</code>
+and <code>source</code> from the configuration file are added.</p>
+
+<p>Finally, we will test this configuration with the following curl command.</p>
+
+<pre><code>$ curl -i -X POST -d 'json={&quot;action&quot;:&quot;login&quot;,&quot;user&quot;:2}' http://localhost:8888/test.cycle
+</code></pre>
+
+<p>Upon executing this statement, the following line will appear in
+<code>/var/log/td-agent/td-agent.log</code>.</p>
+
+<pre><code>2016-11-03 14:36:50 +0000 test.cycle: {&quot;action&quot;:&quot;login&quot;,&quot;user&quot;:2}
+</code></pre>
+
+<p>Alternatively, we may specify that any event with the tag &ldquo;test.cycle&rdquo; be
+written to file. This is done with the <code>out_file</code> plugin. First, remove the
+<code>&lt;match&gt;</code> node for the <code>out_stdout</code> plugin that was previously configured, and
+replace it with the following.</p>
+
+<pre><code class="language-xml">&lt;match test.cycle&gt;
+    @type file
+    path /var/log/myapp/applogs
+&lt;/match&gt;
+</code></pre>
+
+<p>One critical note in this case is that <code>td-agent</code> runs under, I believe, the
+&ldquo;td-agent&rdquo; user. This user must have write access to <code>/var/log/myapp/</code>. Save the
+configuration file and reload <code>td-agent</code>. Executing the prior curl statement
+again will result in the creation of a new file in the directory
+<code>/var/log/myapp</code>. That file will have a name with the format:
+<code>applogs.YYYYMMDD.SOMEGUID</code>. This file serves as a buffer. Once the buffer is
+flushed on some cycle, the output file will appear without the trailing guid.</p>
+
+<h3 id="fluentd-with-docker">Fluentd With Docker</h3>
+
+<p>The next step is to configure fluentd to work with docker. To accomplish this,
+we will use the forward input plugin as follows.</p>
+
+<pre><code class="language-xml">&lt;source&gt;
+    @type forward
+    port 24224
+&lt;/source&gt;
+</code></pre>
+
+<p>The fluentd forward plugin will listen on port 24224. Additionally, we will run
+a container on the host using docker&rsquo;s <code>--log-driver</code> option, specifying that
+docker use the fluentd logging driver. By default, the fluentd logging driver
+will take a running container&rsquo;s stderr and stdout and pipe those streams to port
+24224 on localhost.</p>
+
+<pre><code class="language-bash">$ docker run --log-driver=fluentd ubuntu echo &quot;Hello fluentd&quot;
+</code></pre>
+
+<p>Note that this will not result in any lines written to <code>/var/log/myapp</code>
+logfiles. This is because fluentd is only matching on the tag <code>test.cycle</code>. The
+solution is to use the <code>tag</code> option with docker&rsquo;s <code>log-opt</code> command when running
+the container.</p>
+
+<pre><code class="language-bash">$ docker run --log-driver=fluentd --log-opt tag=&quot;test.cycle&quot; ubuntu echo &quot;Hello fluentd&quot;
+</code></pre>
+
+<p>I should note that I experienced a curious issue here with my local vagrant
+environment. After first successfully running the above command, I left the
+environment alone for several days and then came back to it. At that point, the
+vagrant box was still up and running on my laptop. I attempted to re-execute the
+above command, and was met with the following error.</p>
+
+<pre><code>docker: Error response from daemon: Failed to initialize logging driver: dial tcp 127.0.0.1:24224: getsockopt: connection refused.
+</code></pre>
+
+<p>In order to resolve the issue, I had to <code>vagrant halt</code> the box and restart.</p>
+
+<p>This will populate the active logfile in <code>/var/log/myapp</code> with data. By default,
+the log line will also contain the container name, container id, and source
+(stdout). For more details, see
+<a href="https://docs.docker.com/engine/admin/logging/fluentd/">https://docs.docker.com/engine/admin/logging/fluentd/</a>.</p>
+
+<h2 id="application-logging">Application Logging</h2>
+
+<p>Now that we are able to connect a container&rsquo;s stdout to fluentd, we may finally
+simulate a real application running within a container and logging to fluentd on
+the host OS. To accomplish this, we will define a simple Python module that
+writes to stdout every 3 seconds.</p>
+
+<h2 id="fluentd-to-elasticsearch">Fluentd to Elasticsearch</h2>
+
+<p>The final step in putting all of this together involves the installation of the
+fluentd elasticsearch plugin. This was installed as part of the Vagrant
+provisioning upon instantiation of the VM.</p>
+
+<pre><code class="language-bash">$ /usr/sbin/td-agent-gem install fluent-plugin-elasticsearch
+</code></pre>
+
+<p>In the <code>/etc/td-agent/td-agent.conf</code> configuration, the <code>&lt;match&gt;</code> node which
+specifies the elasticsearch output plugin contains several elements. The default
+values would appear as follows.</p>
+
+<pre><code>&lt;match test.cycle&gt;
+    @type elasticsearch
+    host 10.0.2.2
+    port 9200
+    logstash_format true
+    logstash_prefix my_logs
+&lt;/match&gt;
+</code></pre>
+
+<p>I have defined a simple python process that logs to stdout on some interval, and
+then embedded that process into a container that I am able to run on demand. To
+accomplish this, I will require a Dockerfile populated as follows, along with
+the <code>simple-logger.py</code> python module.</p>
+
+<pre><code># Simple container that logs random text to stdout
+
+FROM python
+
+ADD ./simple-logger.py /tmp/simple-logger.py
+</code></pre>
+
+<p>In order to make these two files available within the Vagrant box, simply place
+the Dockerfile and the python module in the same directory as the Vagrantfile.
+This directory is automatically mounted to the Vagrant box at <code>/vagrant</code>.</p>
+
+<p>In the Dockerfile above, the name of the python module containing the
+aforementioned process is <code>simple-logger.py</code>. To construct and tag a container
+image that I may run locally on demand, execute the following from the
+<code>/vagrant</code> folder.</p>
+
+<pre><code>$ docker build -r logger .
+</code></pre>
+
+<p>This expects a Dockerfile in the current directory. Note that the Dockerfile
+itself also expects <code>simple-logger.py</code> in the current directory.</p>
+
+<p>Now that the appropriate container is available, the final step before running
+it involves configuring fluentd to listen for container logs on port 24224 and
+forward those logs to elasticsearch using the output plugin. Populate
+<code>/etc/td-agent/td-agent.conf</code> as follows.</p>
+
+<pre><code>&lt;source&gt;
+    @type forward
+    port 24224
+&lt;/source&gt;
+
+&lt;match test.cycle&gt;
+    @type elasticsearch
+    host 10.0.2.2
+    port 9200
+    logstash_format true
+    logstash_prefix my_logs
+&lt;/match&gt;
+</code></pre>
+
+<p>Next, reload the new fluentd configuration with <code>sudo /etc/init.d/td-agent
+reload</code>.</p>
+
+<p>Finally, to run the image, execute the following.</p>
+
+<pre><code>$ docker run --log-driver=fluentd --log-opt tag=&quot;test.cycle&quot; logger python /tmp/simple-logger.py
+</code></pre>
+
+<p>After this container has run for a few seconds, several log lines should have
+been written to stdout. If everything has worked appropriately, the
+elasticsearch instance should have received the writes and created a new index,
+according to the fluentd elasticsearch plugin configuration specified
+previously. Specifically, an index prefaced with the string <code>my_logs</code> should
+appear in response to the following command, which lists all indices on a given
+elasticsearch instance.</p>
+
+<pre><code>$ curl 'http://localhost:9200/_cat/indices?v'
+</code></pre>
+
+<h2 id="fluentd-ha-and-failure-scenarios">Fluentd HA and Failure Scenarios</h2>
+
+<p>See the following two resources:</p>
+
+<ul>
+<li><a href="http://docs.fluentd.org/articles/failure-scenarios">http://docs.fluentd.org/articles/failure-scenarios</a></li>
+<li><a href="http://tom.meinlschmidt.org/2014/05/28/optimizing-fluentd/">http://tom.meinlschmidt.org/2014/05/28/optimizing-fluentd/</a></li>
+</ul>
+
+	
+			
+
+			
+
+			
+				<div class="paging">
+					<span class="paging-label">More Reading</span>
+					
+					<div class="paging-newer">
+						<span class="dark-red">Newer</span><span class="decorative-marker">//</span>
+						<a class="paging-link" href="/post/11-29-2016_fluentd-ha-eval/">Fluentd High Availability Evaluation</a>
+		            </div>
+		            
+
+					
+					<div class="paging-older">
+						<span class="dark-red">Older</span><span class="decorative-marker">//</span>
+			            <a class="paging-link" href="/post/10-24-2016_dev-env/">CLI Development Environment, Look and Feel</a>
+		            </div>
+		            
+	            </div>
+            
+          </section>
+          
+          	
+          
+        
+      <div class="footer">
+	<hr class="thin" />
+	<div class="pure-menu pure-menu-horizontal pure-menu-open">
+		<ul class="footer-menu">
+		
+		</ul>
+	</div>
+
+	<p>&copy; 2017. All rights reserved.</p>
+</div>
+    </div>
+  </div>
+	
+
+	
+
+  
+</body>
+</html>
