@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  
+  <url>
+    <loc>https://jlbar.github.io/</loc>
+    <lastmod>2017-06-15T10:05:07-05:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://jlbar.github.io/post/11-29-2016_fluentd-ha-eval/</loc>
+    <lastmod>2017-06-15T10:05:07-05:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://jlbar.github.io/post/11-02-2016_fluentd-details/</loc>
+    <lastmod>2017-06-15T10:05:00-05:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://jlbar.github.io/post/10-24-2016_dev-env/</loc>
+    <lastmod>2017-06-15T10:04:53-05:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://jlbar.github.io/post/12-29-2016_pyspark/</loc>
+    <lastmod>2017-06-15T10:04:34-05:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://jlbar.github.io/post/01-09-2017_recommendation-techniques/</loc>
+    <lastmod>2017-06-15T10:04:02-05:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://jlbar.github.io/post/09-06-2016_vagrant-multi-machine/</loc>
+    <lastmod>2017-06-15T09:31:27-05:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://jlbar.github.io/post/08-29-2016_fourier-transform/</loc>
+    <lastmod>2016-09-01T08:18:45-05:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://jlbar.github.io/post/08-23-2016_fluentd/</loc>
+    <lastmod>2016-09-01T08:18:37-05:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://jlbar.github.io/post/first/</loc>
+    <lastmod>2016-08-22T14:31:21-05:00</lastmod>
+  </url>
+  
+</urlset>

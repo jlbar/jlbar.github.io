@@ -1,0 +1,1007 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>notes and stuff</title>
+    <link>https://jlbar.github.io/</link>
+    <description>Recent content on notes and stuff</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Thu, 15 Jun 2017 10:05:07 -0500</lastBuildDate>
+    <atom:link href="https://jlbar.github.io/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Fluentd High Availability Evaluation</title>
+      <link>https://jlbar.github.io/post/11-29-2016_fluentd-ha-eval/</link>
+      <pubDate>Thu, 15 Jun 2017 10:05:07 -0500</pubDate>
+      
+      <guid>https://jlbar.github.io/post/11-29-2016_fluentd-ha-eval/</guid>
+      <description>
+
+&lt;p&gt;The recommended fluentd high availability configuration consists of a
+multi-component architecture wherein network partitions and general downstream
+component unavailability is dealt with by directing fluentd to buffer locally to
+disk.&lt;/p&gt;
+
+&lt;p&gt;The high availability configuration consists of three primary classes of
+components: forwarders, aggregators, and the persistence layer.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://jlbar.github.io/img/fluentd_ha.png&#34; alt=&#34;fluentd ha&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;I will detail the fluentd configuration file (typically located at
+&lt;code&gt;/etc/td-agent/td-agent.conf&lt;/code&gt;) for each component respectively.&lt;/p&gt;
+
+&lt;h2 id=&#34;forwarder-configuration&#34;&gt;Forwarder Configuration&lt;/h2&gt;
+
+&lt;p&gt;The fluentd forwarder is responsible for collecting logs from local applications
+and processes. Additionally, the forwarder must pass the collected events along
+to the downstream aggregator. In the configuration file, the local instances
+from which fluentd will collect events are identified with &lt;code&gt;&amp;lt;source&amp;gt;&lt;/code&gt; nodes. The
+&lt;code&gt;&amp;lt;match&amp;gt;&lt;/code&gt; nodes, on the other hand, specify what to do with the collected
+events.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Fluentd Configuration Details</title>
+      <link>https://jlbar.github.io/post/11-02-2016_fluentd-details/</link>
+      <pubDate>Thu, 15 Jun 2017 10:05:00 -0500</pubDate>
+      
+      <guid>https://jlbar.github.io/post/11-02-2016_fluentd-details/</guid>
+      <description>
+
+&lt;p&gt;Here, I will detail the minutia of configuring fluentd in both simple and more
+complex, production-like environments. For brevity and repeatability, I will
+detail these configurations in environments build solely on my laptop, with an
+eye toward replicating what you might see in production as accurately as
+possible.&lt;/p&gt;
+
+&lt;h2 id=&#34;environment-setup&#34;&gt;Environment Setup&lt;/h2&gt;
+
+&lt;p&gt;I use a combination of Docker and Vagrant, running locally on my laptop, to
+instantiate a decent simulation of distinct machines communicating over some
+network in a datacenter or cloud provider. This certainly could have been
+achieved using only Vagrant or only Docker, but I found it more convenient to
+use a combination of both. Perhaps I will change that for consistency at some
+later date.&lt;/p&gt;
+
+&lt;h3 id=&#34;application-host&#34;&gt;Application Host&lt;/h3&gt;
+
+&lt;p&gt;Vagrant is used to instantiate the box that will serve as our application host
+OS. This host will expose the Docker runtime responsible for managing our
+application containers. In addition, this host will run the fluentd daemon,
+which will work in conjunction with Docker&amp;rsquo;s fluentd logging driver to capture
+output from running containers&amp;rsquo; &lt;code&gt;stdout&lt;/code&gt; and &lt;code&gt;stderr&lt;/code&gt; and forward that output to
+some downstream consumer: either a fluentd aggregator or elasticsearch.&lt;/p&gt;
+
+&lt;p&gt;To set up a minimal Vagrant box that contains only those dependencies I require
+for the current project (that is, docker and fluentd), I will provision my own
+VM. To accomplish this, I will need two items: one &lt;code&gt;Vagrantfile&lt;/code&gt; and one shell
+script which holds the actual provisioning commands. The provisioning script,
+named &lt;code&gt;provision.sh&lt;/code&gt; here, is as follows.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;#!/bin/bash
+
+# Provisioning script to install Docker, fluentd, vim, and several other tools
+
+
+# Install fluentd 
+curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.sh | sh
+
+
+# Install Docker Engine
+sudo yum -y update
+
+# Install using script
+curl -fsSL https://get.docker.com/ | sh
+
+# Enable the service and start daemon
+sudo systemctl enable docker.service
+sudo systemctl start docker
+
+# Configure the Docker daemon to start on boot
+sudo systemctl enable docker
+
+
+# Install elasticsearch fluentd plugin
+/usr/sbin/td-agent-gem install fluent-plugin-elasticsearch
+
+
+# Install vim
+sudo yum install -y vim
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The &lt;code&gt;Vagrantfile&lt;/code&gt; is as follows.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(&amp;quot;2&amp;quot;) do |config|
+  config.vm.box = &amp;quot;centos/7&amp;quot;
+
+  config.vm.provision :shell, path: &amp;quot;provision.sh&amp;quot;
+end
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Note that the &lt;code&gt;Vagrantfile&lt;/code&gt; simply consists of declaring a minimal &amp;ldquo;base&amp;rdquo; box,
+in this case Centos/7, and then provisioning that box with Docker and fluentd by
+calling the &lt;code&gt;config.vm.provision&lt;/code&gt; command. From the command line, &lt;code&gt;vagrant up&lt;/code&gt;
+will build, provision, and start the box.&lt;/p&gt;
+
+&lt;p&gt;Once the box is up, &lt;code&gt;vagrant ssh&lt;/code&gt; into it and execute the following to get the
+IP address with which to reference my laptop (the Docker host) from the Vagrant
+box.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ netstat -rn
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;I will need this IP later to tell fluentd where the elasticsearch instance is
+located.&lt;/p&gt;
+
+&lt;h3 id=&#34;elasticsearch-kibana-host&#34;&gt;Elasticsearch/Kibana Host&lt;/h3&gt;
+
+&lt;p&gt;Docker, running locally on my laptop, will be responsible for running the
+elasticsearch/kibana container. In this scenario, both the elasticsearch and the
+kibana instance will be available on &lt;code&gt;localhost&lt;/code&gt; at ports 9200 and 5601,
+respectively. These are the default ports for those applications.&lt;/p&gt;
+
+&lt;p&gt;For the purposes of this demonstration, I use a single container, available on
+docker hub at &lt;a href=&#34;https://hub.docker.com/r/nshou/elasticsearch-kibana/&#34;&gt;https://hub.docker.com/r/nshou/elasticsearch-kibana/&lt;/a&gt;. Running
+this container with&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ docker run -d -p 9200:9200 -p 5601:5601 nshou/elasticsearch-kibana
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;will expose elasticsearch and kibana on &lt;code&gt;localhost&lt;/code&gt; at their default ports as
+described.&lt;/p&gt;
+
+&lt;h2 id=&#34;individual-components&#34;&gt;Individual Components&lt;/h2&gt;
+
+&lt;p&gt;The application host, running Centos via the Vagrant box given above, has two
+core dependencies: Docker and Fluentd. I will detail the installation of each of
+these components below.&lt;/p&gt;
+
+&lt;h3 id=&#34;docker&#34;&gt;Docker&lt;/h3&gt;
+
+&lt;p&gt;The Docker runtime itself comes pre-installed on the vagrant box listed above.&lt;/p&gt;
+
+&lt;h3 id=&#34;fluentd&#34;&gt;Fluentd&lt;/h3&gt;
+
+&lt;p&gt;Like Docker, fluentd was provisioned in the Vagrant box defined above. The
+&lt;code&gt;/etc/init.d/td-agent&lt;/code&gt; script is used to start, stop, and reload the agent. For
+example, to start fluentd, execute the following.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ /etc/init.d/td-agent start
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;fluentd-configuration&#34;&gt;Fluentd Configuration&lt;/h3&gt;
+
+&lt;p&gt;The configuration file is located at &lt;code&gt;/etc/td-agent/td-agent.conf&lt;/code&gt;. This file
+contains a good deal of commented out boilerplate. Much of this is tailored
+specifically to the Treasure Data commercial offering and may be deleted. The
+td-agent configuration file is detailed here:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://docs.fluentd.org/articles/config-file#&#34;&gt;http://docs.fluentd.org/articles/config-file#&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;and a more general depiction of the &amp;ldquo;life of a fluentd event&amp;rdquo; is here:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://docs.fluentd.org/articles/life-of-a-fluentd-event&#34;&gt;http://docs.fluentd.org/articles/life-of-a-fluentd-event&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;In short, &lt;code&gt;&amp;lt;source&amp;gt;&lt;/code&gt; nodes in the configuration file specify fluentd input
+sources, and &lt;code&gt;&amp;lt;match&amp;gt;&lt;/code&gt; nodes specify outputs. Fluentd uses plugins as its
+extensibility mechanism. Sources are called &amp;ldquo;input plugins&amp;rdquo; and matches are
+called &amp;ldquo;output plugins.&amp;rdquo;&lt;/p&gt;
+
+&lt;p&gt;To test the base installation, we will set up an http source and map output to
+stdout. As stated, this will require two nodes in &lt;code&gt;/etc/td-agent/td-agent.conf&lt;/code&gt;.
+This is the &lt;code&gt;&amp;lt;source&amp;gt;&lt;/code&gt; node:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-xml&#34;&gt;&amp;lt;source&amp;gt;
+    @type http
+    port 8888
+&amp;lt;/source&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;and this is the &lt;code&gt;&amp;lt;match&amp;gt;&lt;/code&gt; node:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-xml&#34;&gt;&amp;lt;match test.cycle&amp;gt;
+    @type stdout
+&amp;lt;/match&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Importantly, the http input plugin will take the url path and form a tag out of
+it. Note that the &lt;code&gt;&amp;lt;match&amp;gt;&lt;/code&gt; node contains the text: &amp;ldquo;test.cycle&amp;rdquo;. This will
+force the instantiation of a rule where each &lt;em&gt;incoming&lt;/em&gt; event that arrives with
+a tag equal to &amp;ldquo;test.cycle&amp;rdquo; will be written to stdout. It should be noted that,
+in this case, stdout is really just &lt;code&gt;td-agent&lt;/code&gt;&amp;rsquo;s log file.&lt;/p&gt;
+
+&lt;p&gt;This configuration uses the &lt;code&gt;in_http&lt;/code&gt; input plugin and the &lt;code&gt;out_stdout&lt;/code&gt; output
+plugin. At this point, &lt;code&gt;td-agent&lt;/code&gt; has been downloaded, but not started. Observe.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo /etc/init.d/td-agent start
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Alternatively, if &lt;code&gt;td-agent&lt;/code&gt; is already up, reload for the configuration changes
+to take effect.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ /etc/init.d/td-agent reload
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now we may begin inspecting the &lt;code&gt;td-agent&lt;/code&gt; logs. On startup, a log file is
+created at &lt;code&gt;/var/log/td-agent/td-agent.log&lt;/code&gt;. At this point, the log will appear
+as follows.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;2016-11-03 13:53:46 +0000 [info]: reading config file path=&amp;quot;/etc/td-agent/td-agent.conf&amp;quot;
+2016-11-03 13:53:46 +0000 [info]: starting fluentd-0.12.29
+2016-11-03 13:53:46 +0000 [info]: gem &#39;fluent-mixin-config-placeholders&#39; version &#39;0.4.0&#39;
+2016-11-03 13:53:46 +0000 [info]: gem &#39;fluent-mixin-plaintextformatter&#39; version &#39;0.2.6&#39;
+2016-11-03 13:53:46 +0000 [info]: gem &#39;fluent-plugin-kafka&#39; version &#39;0.3.1&#39;
+2016-11-03 13:53:46 +0000 [info]: gem &#39;fluent-plugin-mongo&#39; version &#39;0.7.15&#39;
+2016-11-03 13:53:46 +0000 [info]: gem &#39;fluent-plugin-rewrite-tag-filter&#39; version &#39;1.5.5&#39;
+2016-11-03 13:53:46 +0000 [info]: gem &#39;fluent-plugin-s3&#39; version &#39;0.7.1&#39;
+2016-11-03 13:53:46 +0000 [info]: gem &#39;fluent-plugin-scribe&#39; version &#39;0.10.14&#39;
+2016-11-03 13:53:46 +0000 [info]: gem &#39;fluent-plugin-td&#39; version &#39;0.10.29&#39;
+2016-11-03 13:53:46 +0000 [info]: gem &#39;fluent-plugin-td-monitoring&#39; version &#39;0.2.2&#39;
+2016-11-03 13:53:46 +0000 [info]: gem &#39;fluent-plugin-webhdfs&#39; version &#39;0.4.2&#39;
+2016-11-03 13:53:46 +0000 [info]: gem &#39;fluentd&#39; version &#39;0.12.29&#39;
+2016-11-03 13:53:46 +0000 [info]: adding match pattern=&amp;quot;test.cycle&amp;quot; type=&amp;quot;stdout&amp;quot;
+2016-11-03 13:53:46 +0000 [info]: adding source type=&amp;quot;http&amp;quot;
+2016-11-03 13:53:46 +0000 [info]: using configuration file: &amp;lt;ROOT&amp;gt;
+  &amp;lt;source&amp;gt;
+    @type http
+    port 8888
+  &amp;lt;/source&amp;gt;
+  &amp;lt;match test.cycle&amp;gt;
+    @type stdout
+  &amp;lt;/match&amp;gt;
+&amp;lt;/ROOT&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;As expected, fluentd can be seen reading the configuration file we edited at
+&lt;code&gt;/etc/td-agent/td-agent.conf&lt;/code&gt;. Several ruby gems are loaded, then the &lt;code&gt;match&lt;/code&gt;
+and &lt;code&gt;source&lt;/code&gt; from the configuration file are added.&lt;/p&gt;
+
+&lt;p&gt;Finally, we will test this configuration with the following curl command.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ curl -i -X POST -d &#39;json={&amp;quot;action&amp;quot;:&amp;quot;login&amp;quot;,&amp;quot;user&amp;quot;:2}&#39; http://localhost:8888/test.cycle
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Upon executing this statement, the following line will appear in
+&lt;code&gt;/var/log/td-agent/td-agent.log&lt;/code&gt;.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;2016-11-03 14:36:50 +0000 test.cycle: {&amp;quot;action&amp;quot;:&amp;quot;login&amp;quot;,&amp;quot;user&amp;quot;:2}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Alternatively, we may specify that any event with the tag &amp;ldquo;test.cycle&amp;rdquo; be
+written to file. This is done with the &lt;code&gt;out_file&lt;/code&gt; plugin. First, remove the
+&lt;code&gt;&amp;lt;match&amp;gt;&lt;/code&gt; node for the &lt;code&gt;out_stdout&lt;/code&gt; plugin that was previously configured, and
+replace it with the following.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-xml&#34;&gt;&amp;lt;match test.cycle&amp;gt;
+    @type file
+    path /var/log/myapp/applogs
+&amp;lt;/match&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;One critical note in this case is that &lt;code&gt;td-agent&lt;/code&gt; runs under, I believe, the
+&amp;ldquo;td-agent&amp;rdquo; user. This user must have write access to &lt;code&gt;/var/log/myapp/&lt;/code&gt;. Save the
+configuration file and reload &lt;code&gt;td-agent&lt;/code&gt;. Executing the prior curl statement
+again will result in the creation of a new file in the directory
+&lt;code&gt;/var/log/myapp&lt;/code&gt;. That file will have a name with the format:
+&lt;code&gt;applogs.YYYYMMDD.SOMEGUID&lt;/code&gt;. This file serves as a buffer. Once the buffer is
+flushed on some cycle, the output file will appear without the trailing guid.&lt;/p&gt;
+
+&lt;h3 id=&#34;fluentd-with-docker&#34;&gt;Fluentd With Docker&lt;/h3&gt;
+
+&lt;p&gt;The next step is to configure fluentd to work with docker. To accomplish this,
+we will use the forward input plugin as follows.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-xml&#34;&gt;&amp;lt;source&amp;gt;
+    @type forward
+    port 24224
+&amp;lt;/source&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The fluentd forward plugin will listen on port 24224. Additionally, we will run
+a container on the host using docker&amp;rsquo;s &lt;code&gt;--log-driver&lt;/code&gt; option, specifying that
+docker use the fluentd logging driver. By default, the fluentd logging driver
+will take a running container&amp;rsquo;s stderr and stdout and pipe those streams to port
+24224 on localhost.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ docker run --log-driver=fluentd ubuntu echo &amp;quot;Hello fluentd&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Note that this will not result in any lines written to &lt;code&gt;/var/log/myapp&lt;/code&gt;
+logfiles. This is because fluentd is only matching on the tag &lt;code&gt;test.cycle&lt;/code&gt;. The
+solution is to use the &lt;code&gt;tag&lt;/code&gt; option with docker&amp;rsquo;s &lt;code&gt;log-opt&lt;/code&gt; command when running
+the container.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ docker run --log-driver=fluentd --log-opt tag=&amp;quot;test.cycle&amp;quot; ubuntu echo &amp;quot;Hello fluentd&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;I should note that I experienced a curious issue here with my local vagrant
+environment. After first successfully running the above command, I left the
+environment alone for several days and then came back to it. At that point, the
+vagrant box was still up and running on my laptop. I attempted to re-execute the
+above command, and was met with the following error.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;docker: Error response from daemon: Failed to initialize logging driver: dial tcp 127.0.0.1:24224: getsockopt: connection refused.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;In order to resolve the issue, I had to &lt;code&gt;vagrant halt&lt;/code&gt; the box and restart.&lt;/p&gt;
+
+&lt;p&gt;This will populate the active logfile in &lt;code&gt;/var/log/myapp&lt;/code&gt; with data. By default,
+the log line will also contain the container name, container id, and source
+(stdout). For more details, see
+&lt;a href=&#34;https://docs.docker.com/engine/admin/logging/fluentd/&#34;&gt;https://docs.docker.com/engine/admin/logging/fluentd/&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2 id=&#34;application-logging&#34;&gt;Application Logging&lt;/h2&gt;
+
+&lt;p&gt;Now that we are able to connect a container&amp;rsquo;s stdout to fluentd, we may finally
+simulate a real application running within a container and logging to fluentd on
+the host OS. To accomplish this, we will define a simple Python module that
+writes to stdout every 3 seconds.&lt;/p&gt;
+
+&lt;h2 id=&#34;fluentd-to-elasticsearch&#34;&gt;Fluentd to Elasticsearch&lt;/h2&gt;
+
+&lt;p&gt;The final step in putting all of this together involves the installation of the
+fluentd elasticsearch plugin. This was installed as part of the Vagrant
+provisioning upon instantiation of the VM.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ /usr/sbin/td-agent-gem install fluent-plugin-elasticsearch
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;In the &lt;code&gt;/etc/td-agent/td-agent.conf&lt;/code&gt; configuration, the &lt;code&gt;&amp;lt;match&amp;gt;&lt;/code&gt; node which
+specifies the elasticsearch output plugin contains several elements. The default
+values would appear as follows.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;match test.cycle&amp;gt;
+    @type elasticsearch
+    host 10.0.2.2
+    port 9200
+    logstash_format true
+    logstash_prefix my_logs
+&amp;lt;/match&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;I have defined a simple python process that logs to stdout on some interval, and
+then embedded that process into a container that I am able to run on demand. To
+accomplish this, I will require a Dockerfile populated as follows, along with
+the &lt;code&gt;simple-logger.py&lt;/code&gt; python module.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# Simple container that logs random text to stdout
+
+FROM python
+
+ADD ./simple-logger.py /tmp/simple-logger.py
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;In order to make these two files available within the Vagrant box, simply place
+the Dockerfile and the python module in the same directory as the Vagrantfile.
+This directory is automatically mounted to the Vagrant box at &lt;code&gt;/vagrant&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;In the Dockerfile above, the name of the python module containing the
+aforementioned process is &lt;code&gt;simple-logger.py&lt;/code&gt;. To construct and tag a container
+image that I may run locally on demand, execute the following from the
+&lt;code&gt;/vagrant&lt;/code&gt; folder.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ docker build -r logger .
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This expects a Dockerfile in the current directory. Note that the Dockerfile
+itself also expects &lt;code&gt;simple-logger.py&lt;/code&gt; in the current directory.&lt;/p&gt;
+
+&lt;p&gt;Now that the appropriate container is available, the final step before running
+it involves configuring fluentd to listen for container logs on port 24224 and
+forward those logs to elasticsearch using the output plugin. Populate
+&lt;code&gt;/etc/td-agent/td-agent.conf&lt;/code&gt; as follows.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;source&amp;gt;
+    @type forward
+    port 24224
+&amp;lt;/source&amp;gt;
+
+&amp;lt;match test.cycle&amp;gt;
+    @type elasticsearch
+    host 10.0.2.2
+    port 9200
+    logstash_format true
+    logstash_prefix my_logs
+&amp;lt;/match&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Next, reload the new fluentd configuration with &lt;code&gt;sudo /etc/init.d/td-agent
+reload&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Finally, to run the image, execute the following.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ docker run --log-driver=fluentd --log-opt tag=&amp;quot;test.cycle&amp;quot; logger python /tmp/simple-logger.py
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;After this container has run for a few seconds, several log lines should have
+been written to stdout. If everything has worked appropriately, the
+elasticsearch instance should have received the writes and created a new index,
+according to the fluentd elasticsearch plugin configuration specified
+previously. Specifically, an index prefaced with the string &lt;code&gt;my_logs&lt;/code&gt; should
+appear in response to the following command, which lists all indices on a given
+elasticsearch instance.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ curl &#39;http://localhost:9200/_cat/indices?v&#39;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;fluentd-ha-and-failure-scenarios&#34;&gt;Fluentd HA and Failure Scenarios&lt;/h2&gt;
+
+&lt;p&gt;See the following two resources:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://docs.fluentd.org/articles/failure-scenarios&#34;&gt;http://docs.fluentd.org/articles/failure-scenarios&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://tom.meinlschmidt.org/2014/05/28/optimizing-fluentd/&#34;&gt;http://tom.meinlschmidt.org/2014/05/28/optimizing-fluentd/&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>CLI Development Environment, Look and Feel</title>
+      <link>https://jlbar.github.io/post/10-24-2016_dev-env/</link>
+      <pubDate>Thu, 15 Jun 2017 10:04:53 -0500</pubDate>
+      
+      <guid>https://jlbar.github.io/post/10-24-2016_dev-env/</guid>
+      <description>
+
+&lt;p&gt;Here, I will detail the installation and configuration of the foundational
+components comprising the local development environment on my laptop. This post
+is not meant to be exhaustive, and will focus primarily on look-and-feel items.
+For simplicity, I will focus on the three primary components of my development
+environment: the shell (zsh), the terminal multiplexer (tmux), and the editor
+(vim).&lt;/p&gt;
+
+&lt;h2 id=&#34;a-note-on-color-themes&#34;&gt;A Note on Color Themes&lt;/h2&gt;
+
+&lt;p&gt;There exist a dizzying array of available color themes across the applications I
+use. So many, in fact, that it is easy for me to become inundated by the sheer
+number of options available. Thus, I will make it simple: use the base16 color
+theme. Use it everywhere. In order to use the base16 theme in vim, I must make
+the colors available in my terminal emulator. The base16 theme is pleasant,
+well-maintained, and available across multiple platforms including vim and
+Terminal.app.&lt;/p&gt;
+
+&lt;h2 id=&#34;terminal-app&#34;&gt;Terminal.app&lt;/h2&gt;
+
+&lt;p&gt;I use the OSX Terminal.app terminal emulator. I chose this as opposed to the
+popular iTerm2 because Terminal.app comes with the OS and is one less dependency
+to manage. Very little configuration is required of Terminal.app, but I do
+supply two pieces of customization: the Hack font, and the base16 color theme.&lt;/p&gt;
+
+&lt;h3 id=&#34;hack-font&#34;&gt;Hack Font&lt;/h3&gt;
+
+&lt;p&gt;On OSX, fonts are now manageable via homebrew. To install the hack font, execute
+the following.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ brew tap caskroom/fonts
+$ brew cask install font-hack
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;base16-default-profile&#34;&gt;Base16 Default Profile&lt;/h3&gt;
+
+&lt;p&gt;In the OSX Terminal.app, &amp;ldquo;profiles&amp;rdquo; set many more configurable items beyond the
+16-color pallette. These items include the shape of the cursor, opacity of the
+terminal background, audio and visual bell enablement, text encoding, and many
+more.&lt;/p&gt;
+
+&lt;p&gt;Critically, the profile may also declare the terminal as &lt;code&gt;xterm-256color&lt;/code&gt;. The
+terminal configuration itself is, in fact, the correct place to make this
+declaration as opposed to the alternatives of declaring it either in &lt;code&gt;.vimrc&lt;/code&gt; or
+&lt;code&gt;.zshrc&lt;/code&gt;. Each of those applications are consumers of the terminal and have no
+business declaring the terminal&amp;rsquo;s color capabilities.&lt;/p&gt;
+
+&lt;p&gt;To make the default base16 color theme available to Terminal.app, I will need to
+download the appropriate &lt;code&gt;.terminal&lt;/code&gt; file. To do this, simply execute the
+following.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;git clone https://github.com/vbwx/base16-terminal-app.git
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now, go to Terminal/Preferences and find the Profiles tab. Choose &amp;ldquo;import&amp;rdquo; from
+the gear dropdown and find the &amp;ldquo;Default Dark.terminal&amp;rdquo; theme in the &lt;code&gt;/profiles&lt;/code&gt;
+directory of the repo you just cloned.&lt;/p&gt;
+
+&lt;p&gt;Once this is done, you may delete the repository. To make this the default
+profile, simply choose the appropriate option under the &amp;ldquo;General&amp;rdquo; tab.&lt;/p&gt;
+
+&lt;h2 id=&#34;dotfiles&#34;&gt;Dotfiles&lt;/h2&gt;
+
+&lt;p&gt;With an eye toward repeatability and ease of configuration, I do as much as
+possible from the dotfiles, and keep the files themselves under version control.
+From there, configuring a net new development environment is as simple as
+cloning my dotfiles repository and symlinking &lt;code&gt;.zshrc&lt;/code&gt;, &lt;code&gt;.vimrc&lt;/code&gt;, and
+&lt;code&gt;.tmux.conf&lt;/code&gt; from my home directory.&lt;/p&gt;
+
+&lt;p&gt;Specifically, the process involves two steps. First, Execute I execute something
+like the following from my home directory.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ git clone https://github.com/jlbar/dotfiles.git
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This creates the directory &lt;code&gt;~/dotfiles&lt;/code&gt;. Next, execute the following to define
+the appropriate symlinks.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ ln -s ~/dotfiles/tmux/tmux.conf ~/.tmux.conf
+$ ln -s ~/dotfiles/zsh/zshrc ~/.zshrc
+$ ln -s ~/dotfiles/vim/vimrc ~/.vimrc
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now that the dotfiles are pulled and linked, we may discuss the details of
+configuring the look and feel of the CLI by visiting each component separately.&lt;/p&gt;
+
+&lt;h2 id=&#34;zsh&#34;&gt;Zsh&lt;/h2&gt;
+
+&lt;p&gt;I use oh-my-zsh plugins and themes to manage my zsh configuration. Relating
+specifically to look-and-feel, I use the excellent Bullet Train theme. Since
+Bullet Train is not one of the default oh-my-zsh themes, some additional work is
+required.&lt;/p&gt;
+
+&lt;p&gt;Specifically, oh-my-zsh allows for customization by defining the
+&lt;code&gt;$ZSH_CUSTOM&lt;/code&gt; variable, which defaults to &lt;code&gt;~/.oh-my-zsh/custom&lt;/code&gt;. By default, git
+is set to ignore the custom directory, so that oh-my-zsh&amp;rsquo;s update process does
+not interfere with any user customizations.&lt;/p&gt;
+
+&lt;p&gt;To install the Bullet Train theme, create the &lt;code&gt;/themes&lt;/code&gt; directory as follows.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ mkdir $ZSH_CUSTOM/themes
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Next, download the Bullet Train theme.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ curl -O https://raw.githubusercontent.com/caiogondim/bullet-train-oh-my-zsh-theme/master/bullet-train.zsh-theme
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Finally, configure the zsh theme in &lt;code&gt;.zshrc&lt;/code&gt; in the typical fashion as follows.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;ZSH_THEME=&amp;quot;bullet-train&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;These installation notes are condensed from the Bullet Train project&amp;rsquo;s README,
+located here:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/caiogondim/bullet-train-oh-my-zsh-theme&#34;&gt;https://github.com/caiogondim/bullet-train-oh-my-zsh-theme&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;tmux&#34;&gt;Tmux&lt;/h2&gt;
+
+&lt;p&gt;I use the tmux Maglev theme, which is designed to work with Bullet Train. Maglev
+requires the tmux plugin manager, &lt;code&gt;tpm&lt;/code&gt;, located here:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/tmux-plugins/tpm&#34;&gt;https://github.com/tmux-plugins/tpm&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Installation of &lt;code&gt;tpm&lt;/code&gt; is straightforward and involves the creation of a
+&lt;code&gt;~/.tmux&lt;/code&gt; directory where plugins are stored.&lt;/p&gt;
+
+&lt;h2 id=&#34;vim&#34;&gt;Vim&lt;/h2&gt;
+
+&lt;p&gt;For vim, as with zsh, I also use the base16 color theme, available here:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/chriskempson/base16-vim&#34;&gt;https://github.com/chriskempson/base16-vim&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;In keeping with the status line theme established in zsh with Bullet Train and in
+tmux with Maglev, in vim, I use the vim-airline status line, available here:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/vim-airline/vim-airline&#34;&gt;https://github.com/vim-airline/vim-airline&lt;/a&gt;&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Recommendations with Pyspark</title>
+      <link>https://jlbar.github.io/post/12-29-2016_pyspark/</link>
+      <pubDate>Thu, 15 Jun 2017 10:04:34 -0500</pubDate>
+      
+      <guid>https://jlbar.github.io/post/12-29-2016_pyspark/</guid>
+      <description>
+
+&lt;p&gt;I will detail some of the basic components involved in generating
+recommendations using pyspark&amp;rsquo;s alternating least squares matrix factorization
+methods.&lt;/p&gt;
+
+&lt;h2 id=&#34;installation&#34;&gt;Installation&lt;/h2&gt;
+
+&lt;p&gt;I used homebrew on OSX as follows.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ brew install apache-spark
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;I may well have done some additional configuration work after the install, but I
+have since forgotten about any of that.&lt;/p&gt;
+
+&lt;h2 id=&#34;shell-usage&#34;&gt;Shell Usage&lt;/h2&gt;
+
+&lt;p&gt;Pyspark comes packed with a shell utility, which is callable from the command
+line via the &lt;code&gt;pyspark&lt;/code&gt; command. Alternatively, it is possible to launch the
+pyspark shell within ipython. To use ipython, set the
+&lt;code&gt;PYSPARK_DRIVER_IPYTHON&lt;/code&gt;variable to &lt;code&gt;ipython&lt;/code&gt; when invoking pyspark as follows.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ PYSPARK_DRIVER_IPYTHON=ipython pyspark
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;training-data&#34;&gt;Training Data&lt;/h2&gt;
+
+&lt;p&gt;In order to train a model, we must first load data. Pyspark&amp;rsquo;s
+&lt;code&gt;ALS.trainImplicit&lt;/code&gt; method expects either an RDD or tuple that admits the
+structure: (userID, productID, rating).&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Recommendation Techniques</title>
+      <link>https://jlbar.github.io/post/01-09-2017_recommendation-techniques/</link>
+      <pubDate>Thu, 15 Jun 2017 10:04:02 -0500</pubDate>
+      
+      <guid>https://jlbar.github.io/post/01-09-2017_recommendation-techniques/</guid>
+      <description>
+
+&lt;p&gt;This entry will present several recommendation techniques and discuss the
+implementation of those techniques in terms of the fundamental assumptions that
+comprise each.&lt;/p&gt;
+
+&lt;h2 id=&#34;taxonomy&#34;&gt;Taxonomy&lt;/h2&gt;
+
+&lt;p&gt;We will consider two distinct classes of recommendation techniques. One class
+consists of &lt;em&gt;similarity-based&lt;/em&gt; approaches. This class consists of methods such
+as user and item-based collaborative filtering. The other class of techniques we
+will consider are &lt;em&gt;model-based&lt;/em&gt; designs. Here, machine learning algorithms act
+as the source of recommendations.&lt;/p&gt;
+
+&lt;h2 id=&#34;similarity-based-recommendation&#34;&gt;Similarity-Based Recommendation&lt;/h2&gt;
+
+&lt;p&gt;Similarity-based recommendation techniques typically involve the definition of a
+similarity function &lt;em&gt;s&lt;/em&gt; to create a metric space using that function along with the
+user-item matrix. Once &lt;em&gt;s&lt;/em&gt; is defined, an additional step in the recommendation
+process involves the definition of &lt;em&gt;neighborhoods&lt;/em&gt;. If users are represented by
+points in the described metric space, then a neighborhood is defined as the set
+of users within some bounding sphere about a single user.&lt;/p&gt;
+
+&lt;p&gt;Finally, in order to generate recommendations for a user from that user&amp;rsquo;s
+neighborhood of similar users, an aggregation function is required. There are
+many choices for aggregation functions, and one of the most common is weighted
+averaging. The weighted averaging technique is simple, effective in practice,
+and consistent with Social Choice Theory from economics.&lt;/p&gt;
+
+&lt;h3 id=&#34;social-choice-theory&#34;&gt;Social Choice Theory&lt;/h3&gt;
+
+&lt;p&gt;Social choice theory deals with the preferences of individuals and how those
+preferences relate to society as a whole. As it relates to collaborative
+filtering, social choice theory yields four conditions, presented as properties
+as follows.&lt;/p&gt;
+
+&lt;h4 id=&#34;property-1-universal-domain-and-minimal-functionality&#34;&gt;Property 1: &lt;em&gt;Universal domain and minimal functionality&lt;/em&gt;&lt;/h4&gt;
+
+&lt;p&gt;This property sates that an aggregation function should always provide some
+prediction for rated titles.&lt;/p&gt;
+
+&lt;h4 id=&#34;property-2-unanimity&#34;&gt;Property 2: &lt;em&gt;Unanimity&lt;/em&gt;&lt;/h4&gt;
+
+&lt;p&gt;This property states that, if all users rate a certain item higher than another,
+then the aggregation function should always rate that product higher as well.&lt;/p&gt;
+
+&lt;h4 id=&#34;property-3-independence-of-irrelevant-alternatives&#34;&gt;Property 3: &lt;em&gt;Independence of irrelevant alternatives&lt;/em&gt;&lt;/h4&gt;
+
+&lt;h4 id=&#34;property-4-scale-invariance&#34;&gt;Property 4: &lt;em&gt;Scale invariance&lt;/em&gt;&lt;/h4&gt;
+
+&lt;p&gt;This property is motivated by the notion that one user&amp;rsquo;s internal rating scale
+is never comparable to another user&amp;rsquo;s individual scale.&lt;/p&gt;
+
+&lt;p&gt;In short, the only similarity-based collaborative filtering implementation that
+satisfies all four of the properties set forth by social choice theory is
+&lt;em&gt;nearest neighbor&lt;/em&gt; with weighted averaging over the neighborhood.&lt;/p&gt;
+
+&lt;h2 id=&#34;user-based-collaborative-filtering&#34;&gt;User-Based Collaborative Filtering&lt;/h2&gt;
+
+&lt;p&gt;The fundamental components of a user-based collaborative filtering model are a
+user-item matrix, &lt;em&gt;R&lt;/em&gt;, and a similarity metric, &lt;em&gt;s&lt;/em&gt;. &lt;em&gt;R&lt;/em&gt; encodes preference
+ratings (either implicit or explicit) between users and the various items,
+products, or experiences which which a user may interact. The function &lt;em&gt;s&lt;/em&gt;
+computes the similarity between two users based upon how those users rated
+items.&lt;/p&gt;
+
+&lt;h2 id=&#34;references&#34;&gt;References&lt;/h2&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.microsoft.com/en-us/research/wp-content/uploads/2016/11/social_choice_theory.pdf&#34;&gt;https://www.microsoft.com/en-us/research/wp-content/uploads/2016/11/social_choice_theory.pdf&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://files.grouplens.org/papers/FnT%20CF%20Recsys%20Survey.pdf&#34;&gt;http://files.grouplens.org/papers/FnT%20CF%20Recsys%20Survey.pdf&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Vagrant Multi-Machine</title>
+      <link>https://jlbar.github.io/post/09-06-2016_vagrant-multi-machine/</link>
+      <pubDate>Thu, 15 Jun 2017 09:31:27 -0500</pubDate>
+      
+      <guid>https://jlbar.github.io/post/09-06-2016_vagrant-multi-machine/</guid>
+      <description>
+
+&lt;p&gt;Vagrant is a powerful and convenient tool for provisioning and managing virtual
+machines. One of my most common use cases for Vagrant involves standing up a
+semi-real-world environment for the evaluation of some distributed system. The
+disparate set of examples where Vagrant has been useful to me in this context
+includes Cassandra, Spark, etcd, docker, kubernetes, consul, and many more.&lt;/p&gt;
+
+&lt;p&gt;Often, the manner in which the components of such systems interact over the
+network is at the heart of such an investigation. There do exist other options
+for performing this analysis. For instance, each component of a distributed
+system might be flattened down onto a single machine. This provides a
+convenience benefit, but is an inaccurate model of a real world system.
+Similarly, the use of a container runtime such as Docker provides a convenient
+means to instantiate the components of a distributed system, but Docker&amp;rsquo;s
+networking model does not provide a compelling real world simulation of
+different services running on different machines. Vagrant&amp;rsquo;s multi machine
+feature provides a solution to this issue that is at once convenient and
+sufficiently comparable to real world networking scenarios.&lt;/p&gt;
+
+&lt;h2 id=&#34;multi-machine&#34;&gt;Multi-Machine&lt;/h2&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Periodicity in Financial Time Series</title>
+      <link>https://jlbar.github.io/post/08-29-2016_fourier-transform/</link>
+      <pubDate>Thu, 01 Sep 2016 08:18:45 -0500</pubDate>
+      
+      <guid>https://jlbar.github.io/post/08-29-2016_fourier-transform/</guid>
+      <description>
+
+&lt;p&gt;I will make a first pass through several sources, then condense my notes into
+something more unified and coherent. Each source will have its own section.&lt;/p&gt;
+
+&lt;h2 id=&#34;the-fourier-transform-and-its-applications&#34;&gt;The Fourier Transform and its Applications&lt;/h2&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://see.stanford.edu/materials/lsoftaee261/book-fall-07.pdf&#34;&gt;source&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;periodic-phenomena&#34;&gt;Periodic Phenomena&lt;/h3&gt;
+
+&lt;p&gt;The most important principle of the subject at hand is the following.&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;Every signal has a spectrum and is determined by its spectrum. You can analyze
+the signal either in the time (or spatial) domain or in the frequency domain.&lt;/em&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;time-and-space&#34;&gt;Time and Space&lt;/h3&gt;
+
+&lt;p&gt;We think about periodic phenomena in two distinct contexts: &lt;em&gt;time&lt;/em&gt; and &lt;em&gt;space&lt;/em&gt;.&lt;/p&gt;
+
+&lt;p&gt;When an event is periodic in time, the phenomenon comes to you. Examples include
+sound and waves on a shoreline. When an event is periodic in space, you come to
+the phenomenon. An example is observing a picture and noting repeating patterns.&lt;/p&gt;
+
+&lt;p&gt;Physically, the fourier transform will represent the frequency components of a
+function or signal. A fundamental result of fourier series states that any
+periodic phenomena may be expressed as a combination of sines and cosines of
+varying frequencies.&lt;/p&gt;
+
+&lt;h2 id=&#34;analysis-of-financial-time-series-using-fourier-and-wavelet-methods&#34;&gt;Analysis of Financial Time Series using Fourier and Wavelet Methods&lt;/h2&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.664.9412&amp;amp;rep=rep1&amp;amp;type=pdf&#34;&gt;source&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;This paper presents a set of methods in the field of &lt;em&gt;frequency domain
+analysis&lt;/em&gt;. Spectral analysis and filtering methods are two important techniques.
+Spectral analysis can be used to identify the different frequency components of
+a time series. Filters allow us to capture trends, cycles, and seasonality.
+Filters may also be used to eliminate specific frequency components from the
+original time series.&lt;/p&gt;
+
+&lt;p&gt;The second part of the paper discusses wavelets. Frequency domain analysis
+techniques such as fourier analysis eliminate the time domain altogether from
+the representation. Only the frequency domain is present in the representation.
+Wavelets are unique and attractive in that they provide a complete
+representation from both the time and the frequency domains simultaneously.&lt;/p&gt;
+
+&lt;p&gt;Further, wavelets do not suffer from many of the traditional limitations of
+frequency domain methods. A &lt;em&gt;stationary&lt;/em&gt; time series is one whose statistical
+properties (mean, variance, autocorrelation, etc.) are all constant over time.
+Spectral methods and fourier transforms require stationary data. This is very
+often not the case in the financial domain. Volatility may manifest in many
+forms due to many external factors.&lt;/p&gt;
+
+&lt;h3 id=&#34;frequency-domain-analysis&#34;&gt;Frequency Domain Analysis&lt;/h3&gt;
+
+&lt;p&gt;We will divide the discussion of frequency analysis into two sections: one on
+&lt;em&gt;spectral analysis&lt;/em&gt; and one on &lt;em&gt;filtering techniques&lt;/em&gt;.&lt;/p&gt;
+
+&lt;h4 id=&#34;spectral-analysis&#34;&gt;Spectral Analysis&lt;/h4&gt;
+
+&lt;p&gt;The field of time series analysis involves the study of a variable in the time
+domain. Spectral analysis, on the other hand, studies the properties of a
+variable over the frequency domain. Specifically, the goal is to explain the
+variance in a variable by describing how the variance may be split into a
+variety of frequency components.&lt;/p&gt;
+
+&lt;h2 id=&#34;sources&#34;&gt;Sources&lt;/h2&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://robjhyndman.com/hyndsight/longseasonality/&#34;&gt;http://robjhyndman.com/hyndsight/longseasonality/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf&#34;&gt;http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.le.ac.uk/users/dsgp1/COURSES/LEIMETZ/FOURIER.pdf&#34;&gt;http://www.le.ac.uk/users/dsgp1/COURSES/LEIMETZ/FOURIER.pdf&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf&#34;&gt;http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf&#34;&gt;http://www.math.nsc.ru/AP/ScientificDiscovery/PDF/data_mining_for_financial_applications.pdf&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Logging with Fluentd</title>
+      <link>https://jlbar.github.io/post/08-23-2016_fluentd/</link>
+      <pubDate>Thu, 01 Sep 2016 08:18:37 -0500</pubDate>
+      
+      <guid>https://jlbar.github.io/post/08-23-2016_fluentd/</guid>
+      <description>
+
+&lt;p&gt;Fluentd is an open source data collector that comprises several critical
+functions necessary to expose a centralized, unified logging layer across a set
+of applications and infrastructure. Fluentd allows logging data to be streamed
+from disparate applications into a central persistence layer such as an
+Elasticsearch cluster. The fluentd architecture provides durable writes,
+reliable delivery over a network, high availability, and massive scale.&lt;/p&gt;
+
+&lt;h2 id=&#34;high-availability&#34;&gt;High Availability&lt;/h2&gt;
+
+&lt;p&gt;Fluentd&amp;rsquo;s high availability configuration involves two distinct entities:
+forwarders and aggregators. Forwarders are instantiated on individual servers,
+and are responsible for durable writes, buffering, and reliably sending events
+to downstream aggregators. Aggregators are responsible for collecting events
+from potentially multiple forwarders. In turn, those events are buffered and
+sent along to some persistence layer.&lt;/p&gt;
+
+&lt;h2 id=&#34;durability&#34;&gt;Durability&lt;/h2&gt;
+
+&lt;p&gt;Forwarders and aggregators both support durable writes. In either case, when an
+event is received, fluentd will first write the data locally to disk. Data is
+buffered on disk for some configurable time interval. Once each cycle has
+expired, data is either forwarded to an aggregator or a persistence layer. If a
+fluentd process is terminated, any buffered data is picked up once the process
+restarts. Data transfer is similarly robust in that, in the event of a network
+partition, fluentd will automatically retry.&lt;/p&gt;
+
+&lt;h2 id=&#34;containers-and-orchestration&#34;&gt;Containers and Orchestration&lt;/h2&gt;
+
+&lt;p&gt;Containerization is difficult due, in part, to the fact that the technology
+fundamentally alters the nature of application logging. This, combined with the
+fact that best practices in this area have yet to solidify, makes the issue
+pernicious.&lt;/p&gt;
+
+&lt;p&gt;Implemented correctly, containers are immutable and ephemeral. This
+presents a particular set of challenges when attempting to persist application
+logs in the traditional manner, on the application server&amp;rsquo;s filesystem. In this
+case, fluentd provides a particularly attractive solution.&lt;/p&gt;
+
+&lt;p&gt;Docker 1.8 saw the release of a native fluentd logging driver, which greatly
+simplified the implementation of a centralized logging solution in a
+containerized environment. An example architecture, using containers and the
+fluentd high availability configuration, is given below.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://jlbar.github.io/img/fluentd_container_architecture.png&#34; alt=&#34;this is an image&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;When considering a logging solution for a containerized, orchestrated
+environment, several key points must be addressed.&lt;/p&gt;
+
+&lt;h2 id=&#34;logs&#34;&gt;Logs&lt;/h2&gt;
+
+&lt;h3 id=&#34;ephemerality&#34;&gt;Ephemerality&lt;/h3&gt;
+
+&lt;p&gt;Containers are transient and should be treated as immutable infrastructure
+components. In fact, one of the primary functions of an orchestration framework
+is to start, stop, instantiate, and dispose of containers according to a set of
+(preferably) declarative statements about an application&amp;rsquo;s operational
+environment. Thus, logging locally within a container is an anti-pattern. Due to
+the ephemerality of containers, logging data must be exported for persistence
+and analysis.&lt;/p&gt;
+
+&lt;h3 id=&#34;multi-tiered-architecture&#34;&gt;Multi-Tiered Architecture&lt;/h3&gt;
+
+&lt;p&gt;An operational container has dependencies well beyond the runtime of the
+container itself. Each container, for instance, is managed by a Docker service
+local to the host operating system upon which the container is deployed. Of
+course, the host operating system itself is another critical component. To
+provide a complete view of a containerized operational environment, logs from
+each of these components must be readily accessible and, critically, &lt;em&gt;relatable&lt;/em&gt;
+to one another. If container &lt;em&gt;C&lt;/em&gt; is running on host &lt;em&gt;H&lt;/em&gt; and being managed by
+Docker process &lt;em&gt;D&lt;/em&gt;, we must be able to readily identify and access logs across
+these components.&lt;/p&gt;
+
+&lt;h3 id=&#34;docker-logging-methods&#34;&gt;Docker Logging Methods&lt;/h3&gt;
+
+&lt;h4 id=&#34;application&#34;&gt;Application&lt;/h4&gt;
+
+&lt;p&gt;The traditional scenario involves an application writing and managing its own
+logs using a framework available to the programming language native to the
+application. Centralized logging solutions using frameworks such as &lt;code&gt;log4j&lt;/code&gt; and
+python&amp;rsquo;s &lt;code&gt;logging&lt;/code&gt; module are possible to implement, entirely independent of
+Docker and the host OS. This scenario gives the developer the most control, but
+application performance is impacted.&lt;/p&gt;
+
+&lt;p&gt;One issue with application logging a containerized service is that, as
+previously mentioned, a running container&amp;rsquo;s filesystem is ephemeral. When the
+container goes out of scope, its filesystem is lost. This leaves the two options
+of either configuring a persistent data volume or forwarding logs to a remote
+persistence apparatus. Another issue with this strategy involves the deployment
+of multiple containers running the same application. Each application/container
+pair must be uniquely identifiable in the logs.&lt;/p&gt;
+
+&lt;h4 id=&#34;data-volumes&#34;&gt;Data Volumes&lt;/h4&gt;
+
+&lt;p&gt;Using this technique, long-lived data is persisted by mapping a directory in the
+container to a directory on the host OS. A single volume may be shared across
+multiple containers running on the same host OS. One issue is that moving
+containers from one host to another becomes difficult to do without losing
+logging data. At any rate, the complexity of moving both an application &lt;em&gt;and&lt;/em&gt;
+its logs is not ideal.&lt;/p&gt;
+
+&lt;h4 id=&#34;docker-logging-driver&#34;&gt;Docker Logging Driver&lt;/h4&gt;
+
+&lt;p&gt;This scenario, described briefly above, takes much of the responsibility around
+logging away from the application, and gives it to the Docker logging driver.
+The driver takes events directly from a container&amp;rsquo;s stdout and stderr, then
+performs some function, depending on the specific driver chosen. Application
+performance is improved due to the dramatically reduced interaction between the
+application and the filesystem.&lt;/p&gt;
+
+&lt;h4 id=&#34;dedicated-logging-container&#34;&gt;Dedicated Logging Container&lt;/h4&gt;
+
+&lt;p&gt;Logging either by mounting a volume to a host or by using a logging driver both
+share a common fault: reliance on a service running on the host OS. Dedicated
+logging containers localize logging responsibility across a host OS to a single
+container which does only that: manage other containers&amp;rsquo; logs. Dedicated logging
+containers are as flexible as the two host-based systems discussed and are able
+to ingest logs from multiple sources, such as data volumes and stderr.&lt;/p&gt;
+
+&lt;h4 id=&#34;sidecar&#34;&gt;Sidecar&lt;/h4&gt;
+
+&lt;p&gt;This approach involves the instantiation of one dedicated logging container to
+each application container. Each logging container is responsible only for
+managing logs for its single charge. This scenario typically involves the two
+containers sharing a volume on the host OS, with the application writing to the
+volume, and the sidecar reading, rolling off, and generally managing the logs
+streaming into the volume. The sidecar approach is more complex than the others,
+but scales more readily. An orchestration system like Kubernetes or Swarm is
+likely the best way to manage the additional complexity incurred with this
+solution.&lt;/p&gt;
+
+&lt;h2 id=&#34;practical-issues&#34;&gt;Practical Issues&lt;/h2&gt;
+
+&lt;p&gt;There are several critical OS-level configuration concerns which must be
+addressed with any production fluentd installation. These are detailed
+&lt;a href=&#34;http://docs.fluentd.org/articles/before-install&#34;&gt;here&lt;/a&gt; and include items such
+as increasing the maximum number of open file descriptors, along with various
+network optimizations.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://www.fluentd.org/guides/recipes/docker-logging&#34;&gt;Here&lt;/a&gt;, the documentation
+suggests adding the following to &lt;code&gt;td-agent.conf&lt;/code&gt;.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;source&amp;gt;
+  type forward
+  port 24224
+  bind 0.0.0.0
+&amp;lt;/source&amp;gt;
+
+&amp;lt;match *.*&amp;gt;
+  type stdout
+&amp;lt;/match&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The issue with this is that the default configuration file already contains a
+&lt;code&gt;&amp;lt;source&amp;gt;&lt;/code&gt; node with type &lt;code&gt;forward&lt;/code&gt;. Although the extant configuration file does
+not explicitly specify a port number here, the default port for type &lt;code&gt;forward&lt;/code&gt;
+is, in fact, 24224. This will result in an &amp;ldquo;Address already in use&amp;rdquo; error, and
+the fluentd daemon will fail to start. The solution is to remember that only one
+source may be bound to a single port.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>first</title>
+      <link>https://jlbar.github.io/post/first/</link>
+      <pubDate>Mon, 22 Aug 2016 14:31:21 -0500</pubDate>
+      
+      <guid>https://jlbar.github.io/post/first/</guid>
+      <description>&lt;p&gt;This is a trial post for the first iteration of this project. I am using Hugo to
+generate a static website and Github Pages for deployment. This text should be
+sufficient to determine if everything is working as expected.&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+<head>
+  <title>
+    Recommendation Techniques // notes and stuff
+  </title>
+
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+<meta name="description" content="">
+<meta name="keywords" content="">
+<meta name="author" content="">
+<meta name="generator" content="Hugo 0.16" />
+
+  <meta property="og:title" content="Recommendation Techniques" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:url" content="https://jlbar.github.io/post/01-09-2017_recommendation-techniques/" />
+
+
+  
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.5.0/base-min.css">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.5.0/pure-min.css">
+  
+  
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.5.0/grids-responsive-min.css">
+  
+  
+
+  <link rel="stylesheet" href="https://jlbar.github.io/css/redlounge.css">
+  <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href='//fonts.googleapis.com/css?family=Raleway:400,200,100,700,300,500,600,800' rel='stylesheet' type='text/css'>
+  <link href='//fonts.googleapis.com/css?family=Libre+Baskerville:400,700,400italic' rel='stylesheet' type='text/css'>
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  <link href="" rel="alternate" type="application/rss+xml" title="notes and stuff" />
+
+    
+  
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.7/styles/tomorrow-night-bright.min.css">
+  
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.7/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+
+  
+
+  
+
+  
+
+  
+</head>
+
+<body>
+	
+
+	<div id="layout" class="pure-g">
+    <div class="sidebar pure-u-1 pure-u-md-1-4">
+  <div class="header">
+    
+
+	
+
+    <h1 class="brand-title">notes and stuff</h1>
+    <h2 class="brand-tagline">A placeholder for miscellaneous observations</h2>
+
+    <nav class="nav">
+      <ul class="nav-list">
+        <li class="nav-item"><span class="nav-item-separator">//</span><a href="https://jlbar.github.io">Home</a></li>
+        
+      </ul>
+    </nav>
+
+    
+
+  </div>
+</div>
+
+	
+	
+
+    <div class="content pure-u-1 pure-u-md-3-4">
+		<a name="top"></a>
+		
+
+		
+			
+		    <div id="toc" class="pure-u-1 pure-u-md-1-4">
+				<small class="toc-label">Contents</small>
+		   	 	<nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#taxonomy">Taxonomy</a></li>
+<li><a href="#similarity-based-recommendation">Similarity-Based Recommendation</a>
+<ul>
+<li><a href="#social-choice-theory">Social Choice Theory</a>
+<ul>
+<li><a href="#property-1-universal-domain-and-minimal-functionality">Property 1: <em>Universal domain and minimal functionality</em></a></li>
+<li><a href="#property-2-unanimity">Property 2: <em>Unanimity</em></a></li>
+<li><a href="#property-3-independence-of-irrelevant-alternatives">Property 3: <em>Independence of irrelevant alternatives</em></a></li>
+<li><a href="#property-4-scale-invariance">Property 4: <em>Scale invariance</em></a></li>
+</ul></li>
+</ul></li>
+<li><a href="#user-based-collaborative-filtering">User-Based Collaborative Filtering</a></li>
+<li><a href="#references">References</a></li>
+</ul></li>
+</ul>
+</nav>
+		    </div>
+		    
+	    
+  		<section class="post">
+            <h1 class="post-title">
+              <a href="/post/01-09-2017_recommendation-techniques/">Recommendation Techniques</a>
+            </h1>
+            <h3 class="post-subtitle">
+            	
+            </h3>
+            
+            	<span class="post-date">
+                	<span class="post-date-day"><sup>15</sup></span><span class="post-date-separator">/</span><span class="post-date-month">Jun</span> <span class="post-date-year">2017</span>
+            	</span>
+            	
+            
+            	
+            
+
+			
+			
+
+			
+
+			
+
+            
+
+<p>This entry will present several recommendation techniques and discuss the
+implementation of those techniques in terms of the fundamental assumptions that
+comprise each.</p>
+
+<h2 id="taxonomy">Taxonomy</h2>
+
+<p>We will consider two distinct classes of recommendation techniques. One class
+consists of <em>similarity-based</em> approaches. This class consists of methods such
+as user and item-based collaborative filtering. The other class of techniques we
+will consider are <em>model-based</em> designs. Here, machine learning algorithms act
+as the source of recommendations.</p>
+
+<h2 id="similarity-based-recommendation">Similarity-Based Recommendation</h2>
+
+<p>Similarity-based recommendation techniques typically involve the definition of a
+similarity function <em>s</em> to create a metric space using that function along with the
+user-item matrix. Once <em>s</em> is defined, an additional step in the recommendation
+process involves the definition of <em>neighborhoods</em>. If users are represented by
+points in the described metric space, then a neighborhood is defined as the set
+of users within some bounding sphere about a single user.</p>
+
+<p>Finally, in order to generate recommendations for a user from that user&rsquo;s
+neighborhood of similar users, an aggregation function is required. There are
+many choices for aggregation functions, and one of the most common is weighted
+averaging. The weighted averaging technique is simple, effective in practice,
+and consistent with Social Choice Theory from economics.</p>
+
+<h3 id="social-choice-theory">Social Choice Theory</h3>
+
+<p>Social choice theory deals with the preferences of individuals and how those
+preferences relate to society as a whole. As it relates to collaborative
+filtering, social choice theory yields four conditions, presented as properties
+as follows.</p>
+
+<h4 id="property-1-universal-domain-and-minimal-functionality">Property 1: <em>Universal domain and minimal functionality</em></h4>
+
+<p>This property sates that an aggregation function should always provide some
+prediction for rated titles.</p>
+
+<h4 id="property-2-unanimity">Property 2: <em>Unanimity</em></h4>
+
+<p>This property states that, if all users rate a certain item higher than another,
+then the aggregation function should always rate that product higher as well.</p>
+
+<h4 id="property-3-independence-of-irrelevant-alternatives">Property 3: <em>Independence of irrelevant alternatives</em></h4>
+
+<h4 id="property-4-scale-invariance">Property 4: <em>Scale invariance</em></h4>
+
+<p>This property is motivated by the notion that one user&rsquo;s internal rating scale
+is never comparable to another user&rsquo;s individual scale.</p>
+
+<p>In short, the only similarity-based collaborative filtering implementation that
+satisfies all four of the properties set forth by social choice theory is
+<em>nearest neighbor</em> with weighted averaging over the neighborhood.</p>
+
+<h2 id="user-based-collaborative-filtering">User-Based Collaborative Filtering</h2>
+
+<p>The fundamental components of a user-based collaborative filtering model are a
+user-item matrix, <em>R</em>, and a similarity metric, <em>s</em>. <em>R</em> encodes preference
+ratings (either implicit or explicit) between users and the various items,
+products, or experiences which which a user may interact. The function <em>s</em>
+computes the similarity between two users based upon how those users rated
+items.</p>
+
+<h2 id="references">References</h2>
+
+<ul>
+<li><a href="https://www.microsoft.com/en-us/research/wp-content/uploads/2016/11/social_choice_theory.pdf">https://www.microsoft.com/en-us/research/wp-content/uploads/2016/11/social_choice_theory.pdf</a></li>
+<li><a href="http://files.grouplens.org/papers/FnT%20CF%20Recsys%20Survey.pdf">http://files.grouplens.org/papers/FnT%20CF%20Recsys%20Survey.pdf</a></li>
+</ul>
+
+	
+			
+
+			
+
+			
+				<div class="paging">
+					<span class="paging-label">More Reading</span>
+					
+					<div class="paging-newer">
+						<span class="dark-red">Newer</span><span class="decorative-marker">//</span>
+						<a class="paging-link" href="/post/12-29-2016_pyspark/">Recommendations with Pyspark</a>
+		            </div>
+		            
+
+					
+					<div class="paging-older">
+						<span class="dark-red">Older</span><span class="decorative-marker">//</span>
+			            <a class="paging-link" href="/post/09-06-2016_vagrant-multi-machine/">Vagrant Multi-Machine</a>
+		            </div>
+		            
+	            </div>
+            
+          </section>
+          
+          	
+          
+        
+      <div class="footer">
+	<hr class="thin" />
+	<div class="pure-menu pure-menu-horizontal pure-menu-open">
+		<ul class="footer-menu">
+		
+		</ul>
+	</div>
+
+	<p>&copy; 2017. All rights reserved.</p>
+</div>
+    </div>
+  </div>
+	
+
+	
+
+  
+</body>
+</html>

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+<head>
+  <title>
+    Logging with Fluentd // notes and stuff
+  </title>
+
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+<meta name="description" content="">
+<meta name="keywords" content="">
+<meta name="author" content="">
+<meta name="generator" content="Hugo 0.16" />
+
+  <meta property="og:title" content="Logging with Fluentd" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:url" content="https://jlbar.github.io/post/08-23-2016_fluentd/" />
+
+
+  
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.5.0/base-min.css">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.5.0/pure-min.css">
+  
+  
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.5.0/grids-responsive-min.css">
+  
+  
+
+  <link rel="stylesheet" href="https://jlbar.github.io/css/redlounge.css">
+  <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href='//fonts.googleapis.com/css?family=Raleway:400,200,100,700,300,500,600,800' rel='stylesheet' type='text/css'>
+  <link href='//fonts.googleapis.com/css?family=Libre+Baskerville:400,700,400italic' rel='stylesheet' type='text/css'>
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  <link href="" rel="alternate" type="application/rss+xml" title="notes and stuff" />
+
+    
+  
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.7/styles/tomorrow-night-bright.min.css">
+  
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.7/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+
+  
+
+  
+
+  
+
+  
+</head>
+
+<body>
+	
+
+	<div id="layout" class="pure-g">
+    <div class="sidebar pure-u-1 pure-u-md-1-4">
+  <div class="header">
+    
+
+	
+
+    <h1 class="brand-title">notes and stuff</h1>
+    <h2 class="brand-tagline">A placeholder for miscellaneous observations</h2>
+
+    <nav class="nav">
+      <ul class="nav-list">
+        <li class="nav-item"><span class="nav-item-separator">//</span><a href="https://jlbar.github.io">Home</a></li>
+        
+      </ul>
+    </nav>
+
+    
+
+  </div>
+</div>
+
+	
+	
+
+    <div class="content pure-u-1 pure-u-md-3-4">
+		<a name="top"></a>
+		
+
+		
+			
+		    <div id="toc" class="pure-u-1 pure-u-md-1-4">
+				<small class="toc-label">Contents</small>
+		   	 	<nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#high-availability">High Availability</a></li>
+<li><a href="#durability">Durability</a></li>
+<li><a href="#containers-and-orchestration">Containers and Orchestration</a></li>
+<li><a href="#logs">Logs</a>
+<ul>
+<li><a href="#ephemerality">Ephemerality</a></li>
+<li><a href="#multi-tiered-architecture">Multi-Tiered Architecture</a></li>
+<li><a href="#docker-logging-methods">Docker Logging Methods</a>
+<ul>
+<li><a href="#application">Application</a></li>
+<li><a href="#data-volumes">Data Volumes</a></li>
+<li><a href="#docker-logging-driver">Docker Logging Driver</a></li>
+<li><a href="#dedicated-logging-container">Dedicated Logging Container</a></li>
+<li><a href="#sidecar">Sidecar</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#practical-issues">Practical Issues</a></li>
+</ul></li>
+</ul>
+</nav>
+		    </div>
+		    
+	    
+  		<section class="post">
+            <h1 class="post-title">
+              <a href="/post/08-23-2016_fluentd/">Logging with Fluentd</a>
+            </h1>
+            <h3 class="post-subtitle">
+            	
+            </h3>
+            
+            	<span class="post-date">
+                	<span class="post-date-day"><sup>1</sup></span><span class="post-date-separator">/</span><span class="post-date-month">Sep</span> <span class="post-date-year">2016</span>
+            	</span>
+            	
+            
+            	
+            
+
+			
+			
+
+			
+
+			
+
+            
+
+<p>Fluentd is an open source data collector that comprises several critical
+functions necessary to expose a centralized, unified logging layer across a set
+of applications and infrastructure. Fluentd allows logging data to be streamed
+from disparate applications into a central persistence layer such as an
+Elasticsearch cluster. The fluentd architecture provides durable writes,
+reliable delivery over a network, high availability, and massive scale.</p>
+
+<h2 id="high-availability">High Availability</h2>
+
+<p>Fluentd&rsquo;s high availability configuration involves two distinct entities:
+forwarders and aggregators. Forwarders are instantiated on individual servers,
+and are responsible for durable writes, buffering, and reliably sending events
+to downstream aggregators. Aggregators are responsible for collecting events
+from potentially multiple forwarders. In turn, those events are buffered and
+sent along to some persistence layer.</p>
+
+<h2 id="durability">Durability</h2>
+
+<p>Forwarders and aggregators both support durable writes. In either case, when an
+event is received, fluentd will first write the data locally to disk. Data is
+buffered on disk for some configurable time interval. Once each cycle has
+expired, data is either forwarded to an aggregator or a persistence layer. If a
+fluentd process is terminated, any buffered data is picked up once the process
+restarts. Data transfer is similarly robust in that, in the event of a network
+partition, fluentd will automatically retry.</p>
+
+<h2 id="containers-and-orchestration">Containers and Orchestration</h2>
+
+<p>Containerization is difficult due, in part, to the fact that the technology
+fundamentally alters the nature of application logging. This, combined with the
+fact that best practices in this area have yet to solidify, makes the issue
+pernicious.</p>
+
+<p>Implemented correctly, containers are immutable and ephemeral. This
+presents a particular set of challenges when attempting to persist application
+logs in the traditional manner, on the application server&rsquo;s filesystem. In this
+case, fluentd provides a particularly attractive solution.</p>
+
+<p>Docker 1.8 saw the release of a native fluentd logging driver, which greatly
+simplified the implementation of a centralized logging solution in a
+containerized environment. An example architecture, using containers and the
+fluentd high availability configuration, is given below.</p>
+
+<p><img src="/img/fluentd_container_architecture.png" alt="this is an image" /></p>
+
+<p>When considering a logging solution for a containerized, orchestrated
+environment, several key points must be addressed.</p>
+
+<h2 id="logs">Logs</h2>
+
+<h3 id="ephemerality">Ephemerality</h3>
+
+<p>Containers are transient and should be treated as immutable infrastructure
+components. In fact, one of the primary functions of an orchestration framework
+is to start, stop, instantiate, and dispose of containers according to a set of
+(preferably) declarative statements about an application&rsquo;s operational
+environment. Thus, logging locally within a container is an anti-pattern. Due to
+the ephemerality of containers, logging data must be exported for persistence
+and analysis.</p>
+
+<h3 id="multi-tiered-architecture">Multi-Tiered Architecture</h3>
+
+<p>An operational container has dependencies well beyond the runtime of the
+container itself. Each container, for instance, is managed by a Docker service
+local to the host operating system upon which the container is deployed. Of
+course, the host operating system itself is another critical component. To
+provide a complete view of a containerized operational environment, logs from
+each of these components must be readily accessible and, critically, <em>relatable</em>
+to one another. If container <em>C</em> is running on host <em>H</em> and being managed by
+Docker process <em>D</em>, we must be able to readily identify and access logs across
+these components.</p>
+
+<h3 id="docker-logging-methods">Docker Logging Methods</h3>
+
+<h4 id="application">Application</h4>
+
+<p>The traditional scenario involves an application writing and managing its own
+logs using a framework available to the programming language native to the
+application. Centralized logging solutions using frameworks such as <code>log4j</code> and
+python&rsquo;s <code>logging</code> module are possible to implement, entirely independent of
+Docker and the host OS. This scenario gives the developer the most control, but
+application performance is impacted.</p>
+
+<p>One issue with application logging a containerized service is that, as
+previously mentioned, a running container&rsquo;s filesystem is ephemeral. When the
+container goes out of scope, its filesystem is lost. This leaves the two options
+of either configuring a persistent data volume or forwarding logs to a remote
+persistence apparatus. Another issue with this strategy involves the deployment
+of multiple containers running the same application. Each application/container
+pair must be uniquely identifiable in the logs.</p>
+
+<h4 id="data-volumes">Data Volumes</h4>
+
+<p>Using this technique, long-lived data is persisted by mapping a directory in the
+container to a directory on the host OS. A single volume may be shared across
+multiple containers running on the same host OS. One issue is that moving
+containers from one host to another becomes difficult to do without losing
+logging data. At any rate, the complexity of moving both an application <em>and</em>
+its logs is not ideal.</p>
+
+<h4 id="docker-logging-driver">Docker Logging Driver</h4>
+
+<p>This scenario, described briefly above, takes much of the responsibility around
+logging away from the application, and gives it to the Docker logging driver.
+The driver takes events directly from a container&rsquo;s stdout and stderr, then
+performs some function, depending on the specific driver chosen. Application
+performance is improved due to the dramatically reduced interaction between the
+application and the filesystem.</p>
+
+<h4 id="dedicated-logging-container">Dedicated Logging Container</h4>
+
+<p>Logging either by mounting a volume to a host or by using a logging driver both
+share a common fault: reliance on a service running on the host OS. Dedicated
+logging containers localize logging responsibility across a host OS to a single
+container which does only that: manage other containers&rsquo; logs. Dedicated logging
+containers are as flexible as the two host-based systems discussed and are able
+to ingest logs from multiple sources, such as data volumes and stderr.</p>
+
+<h4 id="sidecar">Sidecar</h4>
+
+<p>This approach involves the instantiation of one dedicated logging container to
+each application container. Each logging container is responsible only for
+managing logs for its single charge. This scenario typically involves the two
+containers sharing a volume on the host OS, with the application writing to the
+volume, and the sidecar reading, rolling off, and generally managing the logs
+streaming into the volume. The sidecar approach is more complex than the others,
+but scales more readily. An orchestration system like Kubernetes or Swarm is
+likely the best way to manage the additional complexity incurred with this
+solution.</p>
+
+<h2 id="practical-issues">Practical Issues</h2>
+
+<p>There are several critical OS-level configuration concerns which must be
+addressed with any production fluentd installation. These are detailed
+<a href="http://docs.fluentd.org/articles/before-install">here</a> and include items such
+as increasing the maximum number of open file descriptors, along with various
+network optimizations.</p>
+
+<p><a href="http://www.fluentd.org/guides/recipes/docker-logging">Here</a>, the documentation
+suggests adding the following to <code>td-agent.conf</code>.</p>
+
+<pre><code>&lt;source&gt;
+  type forward
+  port 24224
+  bind 0.0.0.0
+&lt;/source&gt;
+
+&lt;match *.*&gt;
+  type stdout
+&lt;/match&gt;
+</code></pre>
+
+<p>The issue with this is that the default configuration file already contains a
+<code>&lt;source&gt;</code> node with type <code>forward</code>. Although the extant configuration file does
+not explicitly specify a port number here, the default port for type <code>forward</code>
+is, in fact, 24224. This will result in an &ldquo;Address already in use&rdquo; error, and
+the fluentd daemon will fail to start. The solution is to remember that only one
+source may be bound to a single port.</p>
+
+	
+			
+
+			
+
+			
+				<div class="paging">
+					<span class="paging-label">More Reading</span>
+					
+					<div class="paging-newer">
+						<span class="dark-red">Newer</span><span class="decorative-marker">//</span>
+						<a class="paging-link" href="/post/08-29-2016_fourier-transform/">Periodicity in Financial Time Series</a>
+		            </div>
+		            
+
+					
+					<div class="paging-older">
+						<span class="dark-red">Older</span><span class="decorative-marker">//</span>
+			            <a class="paging-link" href="/post/first/">first</a>
+		            </div>
+		            
+	            </div>
+            
+          </section>
+          
+          	
+          
+        
+      <div class="footer">
+	<hr class="thin" />
+	<div class="pure-menu pure-menu-horizontal pure-menu-open">
+		<ul class="footer-menu">
+		
+		</ul>
+	</div>
+
+	<p>&copy; 2017. All rights reserved.</p>
+</div>
+    </div>
+  </div>
+	
+
+	
+
+  
+</body>
+</html>
